@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useMemo } from 'react';
 import * as d3 from 'd3';
-import { useTheme } from 'next-themes';
 
 export type Node = { id: string; group: number; fx?: number | null; fy?: number | null; x?: number; y?: number };
 export type Link = { source: string | Node; target: string | Node; value: number };
@@ -29,7 +28,6 @@ export default function ForceGraph({
 }: ForceGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const simulationRef = useRef<d3.Simulation<Node, Link>>();
-  const { resolvedTheme } = useTheme();
 
   const { nodes, links } = useMemo(() => {
     const nodesCopy = data.nodes.map(d => ({ ...d }));
@@ -46,8 +44,6 @@ export default function ForceGraph({
     let height = container.clientHeight;
 
     const color = d3.scaleOrdinal(d3.schemeCategory10);
-    
-    const labelColor = resolvedTheme === 'dark' ? '#FFFFFF' : '#000000';
 
     const simulation = (simulationRef.current = d3
       .forceSimulation<Node>(nodes)
@@ -69,7 +65,7 @@ export default function ForceGraph({
       .selectAll('line')
       .data(links, d => `${(d.source as Node).id}-${(d.target as Node).id}`)
       .join('line')
-      .attr('stroke', '#999')
+      .attr('stroke', 'hsl(var(--border))')
       .attr('stroke-opacity', 0.6)
       .attr('stroke-width', d => Math.sqrt(d.value));
 
@@ -92,7 +88,7 @@ export default function ForceGraph({
       .attr('pointer-events', 'none')
       .attr('dx', 12)
       .attr('dy', '.35em')
-      .attr('fill', labelColor)
+      .attr('fill', 'hsl(var(--foreground))')
       .text(d => d.id);
 
     const zoom = d3.zoom<SVGSVGElement, unknown>().on('zoom', (event) => {
@@ -138,7 +134,7 @@ export default function ForceGraph({
       simulation.stop();
       resizeObserver.disconnect();
     };
-  }, [data, onNodeClick, resolvedTheme, linkDistance, repelStrength, centerForce]);
+  }, [data, onNodeClick, linkDistance, repelStrength, centerForce]);
   
   // Effect for handling selection
   useEffect(() => {
