@@ -14,8 +14,6 @@ import {
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, Timestamp } from 'firebase/firestore';
 import { format, isSameDay } from 'date-fns';
 
 
@@ -31,21 +29,6 @@ export default function CalendarScheduler() {
   const [events, setEvents] = useState<Event[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  useEffect(() => {
-    const unsub = onSnapshot(collection(db, "events"), (snapshot) => {
-        const newEvents = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                title: data.title,
-                type: data.type,
-                date: (data.date as Timestamp).toDate(),
-            } as Event;
-        });
-        setEvents(newEvents);
-    });
-    return () => unsub();
-  }, []);
 
   const handleAddEvent = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -54,11 +37,13 @@ export default function CalendarScheduler() {
     const type = formData.get('type') as 'work' | 'personal' | 'other';
 
     if (date && title) {
-        await addDoc(collection(db, 'events'), {
+        const newEvent: Event = {
+            id: `event-${Date.now()}`,
+            date,
             title,
             type,
-            date: Timestamp.fromDate(date)
-        });
+        };
+        setEvents(prev => [...prev, newEvent]);
         setIsModalOpen(false);
     }
   };

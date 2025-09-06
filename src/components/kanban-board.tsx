@@ -5,8 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Pencil, Trash2, Plus } from 'lucide-react';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, where, getDocs, writeBatch } from 'firebase/firestore';
 
 type Task = {
   id: string;
@@ -35,25 +33,6 @@ export default function KanbanBoard() {
   const [editingTaskContent, setEditingTaskContent] = useState('');
   const [newTaskContent, setNewTaskContent] = useState<Record<ColumnId, string>>({ todo: '', 'in-progress': '', done: '' });
 
-  useEffect(() => {
-    const q = collection(db, "tasks");
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const newColumns = { ...initialColumns };
-      newColumns.todo.tasks = [];
-      newColumns['in-progress'].tasks = [];
-      newColumns.done.tasks = [];
-
-      querySnapshot.forEach((doc) => {
-        const task = { id: doc.id, ...doc.data() } as Task;
-        if (newColumns[task.columnId]) {
-          newColumns[task.columnId].tasks.push(task);
-        }
-      });
-      setColumns(newColumns);
-    });
-    return () => unsubscribe();
-  }, []);
-
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, taskId: string, sourceColumnId: ColumnId) => {
     setDraggedItem({ taskId, sourceColumnId });
     e.dataTransfer.effectAllowed = 'move';
@@ -73,8 +52,16 @@ export default function KanbanBoard() {
     const { taskId, sourceColumnId } = draggedItem;
     if (sourceColumnId === targetColumnId) return;
     
-    const taskDocRef = doc(db, 'tasks', taskId);
-    await updateDoc(taskDocRef, { columnId: targetColumnId });
+    setColumns(prev => {
+        const newColumns = {...prev};
+        const taskToMove = newColumns[sourceColumnId].tasks.find(t => t.id === taskId);
+        if (taskToMove) {
+            newColumns[sourceColumnId].tasks = newColumns[sourceColumnId].tasks.filter(t => t.id !== taskId);
+            newColumns[targetColumnId].tasks.push({...taskToMove, columnId: targetColumnId});
+        }
+        return newColumns;
+    });
+
 
     setDraggedItem(null);
   };
@@ -83,15 +70,26 @@ export default function KanbanBoard() {
     const content = newTaskContent[columnId].trim();
     if (!content) return;
 
-    await addDoc(collection(db, 'tasks'), {
-      content: content,
-      columnId: columnId,
+    const newTask: Task = {
+        id: `task-${Date.now()}`,
+        content,
+        columnId,
+    };
+
+    setColumns(prev => {
+        const newColumns = {...prev};
+        newColumns[columnId].tasks.push(newTask);
+        return newColumns;
     });
     setNewTaskContent(prev => ({...prev, [columnId]: ''}));
   }
   
-  const handleDeleteTask = async (taskId: string) => {
-    await deleteDoc(doc(db, 'tasks', taskId));
+  const handleDeleteTask = async (taskId: string, columnId: ColumnId) => {
+     setColumns(prev => {
+        const newColumns = {...prev};
+        newColumns[columnId].tasks = newColumns[columnId].tasks.filter(t => t.id !== taskId);
+        return newColumns;
+    });
   }
 
   const handleStartEditing = (task: Task) => {
@@ -99,11 +97,17 @@ export default function KanbanBoard() {
     setEditingTaskContent(task.content);
   }
 
-  const handleConfirmEdit = async () => {
+  const handleConfirmEdit = async (taskId: string, columnId: ColumnId) => {
     if (!editingTaskId) return;
 
-    const taskDocRef = doc(db, 'tasks', editingTaskId);
-    await updateDoc(taskDocRef, { content: editingTaskContent });
+     setColumns(prev => {
+        const newColumns = {...prev};
+        const taskToEdit = newColumns[columnId].tasks.find(t => t.id === taskId);
+        if(taskToEdit) {
+            taskToEdit.content = editingTaskContent;
+        }
+        return newColumns;
+    });
 
     setEditingTaskId(null);
     setEditingTaskContent('');
@@ -139,8 +143,8 @@ export default function KanbanBoard() {
                         <Input 
                             value={editingTaskContent}
                             onChange={(e) => setEditingTaskContent(e.target.value)}
-                            onBlur={handleConfirmEdit}
-                            onKeyDown={(e) => e.key === 'Enter' && handleConfirmEdit()}
+                            onBlur={() => handleConfirmEdit(task.id, column.id)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleConfirmEdit(task.id, column.id)}
                             autoFocus
                             className="flex-grow"
                         />
@@ -151,7 +155,7 @@ export default function KanbanBoard() {
                             <Button variant="ghost" size="icon" onClick={() => handleStartEditing(task)}>
                                 <Pencil className="h-4 w-4"/>
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteTask(task.id)}>
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteTask(task.id, column.id)}>
                                 <Trash2 className="h-4 w-4"/>
                             </Button>
                           </div>

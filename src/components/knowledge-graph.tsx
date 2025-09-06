@@ -10,47 +10,21 @@ import { ChevronRight, Folder, Star, Paperclip, FilePlus, FolderPlus, Trash2, Up
 import ForceGraph from './force-graph';
 import type { Node, Link } from './force-graph';
 import { Button } from './ui/button';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, DocumentReference, writeBatch } from 'firebase/firestore';
 
-
-type FirebaseNode = { id: string; group: number; };
-type FirebaseLink = { source: string; target: string; value: number };
-
+const initialGraphData = {
+    nodes: [],
+    links: []
+};
 
 export default function KnowledgeGraph() {
   const [repelStrength, setRepelStrength] = useState(-500);
-  const [linkDistance, setLinkDistance]_ = useState(50);
+  const [linkDistance, setLinkDistance] = useState(50);
   const [centerForce, setCenterForce] = useState(true);
-  const [graphData, setGraphData] = useState<{ nodes: Node[], links: Link[] }>({ nodes: [], links: [] });
+  const [graphData, setGraphData] = useState<{ nodes: Node[], links: Link[] }>(initialGraphData);
   
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [linkingNodes, setLinkingNodes] = useState<Node[]>([]);
   const [editingNodeName, setEditingNodeName] = useState('');
-
-  useEffect(() => {
-    const unsubNodes = onSnapshot(collection(db, "kg-nodes"), (snapshot) => {
-      const nodes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Node));
-      setGraphData(prev => ({ ...prev, nodes }));
-    });
-
-    const unsubLinks = onSnapshot(collection(db, "kg-links"), (snapshot) => {
-      const links = snapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-              source: data.source,
-              target: data.target,
-              value: data.value
-          } as Link;
-      });
-      setGraphData(prev => ({ ...prev, links }));
-    });
-
-    return () => {
-        unsubNodes();
-        unsubLinks();
-    }
-  }, []);
 
   useEffect(() => {
     if (selectedNode) {
@@ -70,96 +44,96 @@ export default function KnowledgeGraph() {
     }
   };
 
-  const handleAddNode = async (isFolder = false) => {
+  const handleAddNode = (isFolder = false) => {
     const baseName = isFolder ? "New Folder" : "New Node";
-    const newNodeData = { 
+    const newNode = { 
         id: `${baseName} ${Date.now()}`,
         group: isFolder ? 6 : 5
     };
     
-    const docRef = await addDoc(collection(db, 'kg-nodes'), { group: newNodeData.group });
-    await updateDoc(docRef, { id: docRef.id });
-
-
-    if (selectedNode) {
-        await addDoc(collection(db, 'kg-links'), {
-            source: selectedNode.id,
-            target: docRef.id,
-            value: 1
-        });
-    }
+    setGraphData(prev => {
+        const newNodes = [...prev.nodes, newNode];
+        let newLinks = [...prev.links];
+        if (selectedNode) {
+            newLinks.push({ source: selectedNode.id, target: newNode.id, value: 1 });
+        }
+        return { nodes: newNodes, links: newLinks };
+    });
   };
   
-  const handleDeleteSelected = async () => {
+  const handleDeleteSelected = () => {
     if (!selectedNode) return;
-
-    await deleteDoc(doc(db, 'kg-nodes', selectedNode.id));
-
-    // This is more complex in firestore, would need queries to delete links
-    // For simplicity, we assume links are handled by a backend function or are orphaned.
-    
+    setGraphData(prev => ({
+        nodes: prev.nodes.filter(n => n.id !== selectedNode.id),
+        links: prev.links.filter(l => (l.source as Node).id !== selectedNode.id && (l.target as Node).id !== selectedNode.id)
+    }));
     setSelectedNode(null);
   };
   
-  const handleCreateLink = async () => {
+  const handleCreateLink = () => {
     if (linkingNodes.length !== 2) return;
     const [source, target] = linkingNodes;
     
-    const linkExists = graphData.links.some(
-      l => ((l.source as Node).id === source.id && (l.target as Node).id === target.id) ||
-           ((l.source as Node).id === target.id && (l.target as Node).id === source.id)
-    );
-
-    if (!linkExists) {
-        await addDoc(collection(db, 'kg-links'), {
-            source: source.id,
-            target: target.id,
-            value: 1
-        });
-    }
+    setGraphData(prev => {
+        const linkExists = prev.links.some(
+            l => ((l.source as Node).id === source.id && (l.target as Node).id === target.id) ||
+                 ((l.source as Node).id === target.id && (l.target as Node).id === source.id)
+        );
+        if (linkExists) return prev;
+        
+        return {
+            ...prev,
+            links: [...prev.links, { source: source.id, target: target.id, value: 1 }]
+        };
+    });
     setLinkingNodes([]);
     setSelectedNode(null);
   }
 
-   const handleLinkAll = async () => {
+   const handleLinkAll = () => {
     if (linkingNodes.length < 2) return;
-    
-    const batch = writeBatch(db);
-    const linksCollection = collection(db, 'kg-links');
-
-    for (let i = 0; i < linkingNodes.length; i++) {
+    setGraphData(prev => {
+      const newLinks = [...prev.links];
+      for (let i = 0; i < linkingNodes.length; i++) {
         for (let j = i + 1; j < linkingNodes.length; j++) {
-            const source = linkingNodes[i];
-            const target = linkingNodes[j];
-
-            const linkExists = graphData.links.some(
+          const source = linkingNodes[i];
+          const target = linkingNodes[j];
+           const linkExists = newLinks.some(
                 l => ((l.source as Node).id === source.id && (l.target as Node).id === target.id) ||
                      ((l.source as Node).id === target.id && (l.target as Node).id === source.id)
             );
-
-            if (!linkExists) {
-                const linkDocRef = doc(linksCollection);
-                batch.set(linkDocRef, {
-                    source: source.id,
-                    target: target.id,
-                    value: 1
-                });
-            }
+          if (!linkExists) {
+            newLinks.push({ source: source.id, target: target.id, value: 1 });
+          }
         }
-    }
-
-    await batch.commit();
+      }
+      return { ...prev, links: newLinks };
+    });
     setLinkingNodes([]);
     setSelectedNode(null);
   };
 
-
-  const handleUpdateNodeName = async () => {
+  const handleUpdateNodeName = () => {
     if (!selectedNode || !editingNodeName || selectedNode.id === editingNodeName) return;
 
-    // In Firestore, changing an ID is a delete and add operation.
-    // This is a simplified version. A real implementation would be more complex.
-    alert("Updating node IDs is not supported in this simplified example.");
+    setGraphData(prev => {
+        const nodeExists = prev.nodes.some(n => n.id === editingNodeName);
+        if (nodeExists) {
+            alert("A node with this name already exists.");
+            return prev;
+        }
+
+        return {
+            nodes: prev.nodes.map(n => n.id === selectedNode.id ? { ...n, id: editingNodeName } : n),
+            links: prev.links.map(l => {
+                if ((l.source as Node).id === selectedNode.id) return { ...l, source: editingNodeName };
+                if ((l.target as Node).id === selectedNode.id) return { ...l, target: editingNodeName };
+                return l;
+            })
+        }
+    });
+
+    setSelectedNode(prev => prev ? { ...prev, id: editingNodeName } : null);
   }
 
   return (
@@ -250,8 +224,7 @@ export default function KnowledgeGraph() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="link-force">Link Distance ({linkDistance})</Label>
-              <Slider 
+              <Label htmlFor="link-force">Link Distance ({linkDistance})</Label>              <Slider 
                 id="link-force" 
                 min={10} 
                 max={200} 
@@ -266,5 +239,3 @@ export default function KnowledgeGraph() {
     </div>
   );
 }
-
-    
