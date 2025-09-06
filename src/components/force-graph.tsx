@@ -11,6 +11,7 @@ export type GraphData = { nodes: Node[]; links: Link[] };
 interface ForceGraphProps {
   data: GraphData;
   onNodeClick: (node: Node | null) => void;
+  onNodeDrag?: (nodeId: string, position: { x: number, y: number }) => void;
   selectedNodeId: string | null;
   linkingNodeIds: string[];
   repelStrength: number;
@@ -24,6 +25,7 @@ const IMAGE_NODE_SIZE = 24;
 export default function ForceGraph({
   data,
   onNodeClick,
+  onNodeDrag,
   selectedNodeId,
   linkingNodeIds,
   repelStrength,
@@ -53,8 +55,8 @@ export default function ForceGraph({
       .forceSimulation<Node>(nodes)
       .force('link', d3.forceLink<Node, Link>(links).id(d => d.id).distance(linkDistance))
       .force('charge', d3.forceManyBody().strength(repelStrength))
-      .force('x', d3.forceX(width / 2))
-      .force('y', d3.forceY(height / 2)));
+      .force('x', d3.forceX(width / 2).strength(centerForce ? 0.1 : 0))
+      .force('y', d3.forceY(height / 2).strength(centerForce ? 0.1 : 0)));
     
     if (centerForce) {
       simulation.force('center', d3.forceCenter(width / 2, height / 2));
@@ -164,8 +166,8 @@ export default function ForceGraph({
         width = entry.contentRect.width;
         height = entry.contentRect.height;
         svg.attr('width', width).attr('height', height);
-        simulation.force('x', d3.forceX(width / 2));
-        simulation.force('y', d3.forceY(height / 2));
+        simulation.force('x', d3.forceX(width / 2).strength(centerForce ? 0.1 : 0));
+        simulation.force('y', d3.forceY(height / 2).strength(centerForce ? 0.1 : 0));
         if (simulation.force('center')) {
           (simulation.force('center') as d3.ForceCenter<Node>).x(width / 2).y(height / 2);
         }
@@ -221,6 +223,9 @@ export default function ForceGraph({
     }
     function dragended(event: d3.D3DragEvent<any, Node, any>, d: Node) {
       if (!event.active) simulation.alphaTarget(0);
+      if (onNodeDrag) {
+          onNodeDrag(d.id, { x: d.x!, y: d.y! });
+      }
       d.fx = null;
       d.fy = null;
     }
@@ -232,3 +237,5 @@ export default function ForceGraph({
 
   return <svg ref={svgRef} width="100%" height="100%"></svg>;
 }
+
+    

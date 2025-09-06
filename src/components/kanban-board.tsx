@@ -1,183 +1,261 @@
+
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, Plus } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import ForceGraph from './force-graph';
+import type { Node as GraphNode, Link as GraphLink } from './force-graph';
+import { Plus, Link as LinkIcon, Trash2 } from 'lucide-react';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetClose
+} from '@/components/ui/sheet';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
+type TaskStatus = 'todo' | 'in-progress' | 'done';
 
 type Task = {
   id: string;
-  content: string;
-  columnId: ColumnId;
-};
-
-type ColumnId = 'todo' | 'in-progress' | 'done';
-
-type Column = {
-  id: ColumnId;
   title: string;
+  description: string;
+  status: TaskStatus;
+  dependencies: string[];
+  x?: number;
+  y?: number;
 };
 
-const columnData: Column[] = [
-  { id: 'todo', title: 'To Do' },
-  { id: 'in-progress', title: 'In Progress' },
-  { id: 'done', title: 'Done' },
-];
-
-const initialTasks: Record<ColumnId, Task[]> = {
-  'todo': [],
-  'in-progress': [],
-  'done': [],
+// Map status to a group number for color coding in the graph
+const statusToGroup: Record<TaskStatus, number> = {
+  'todo': 1,
+  'in-progress': 2,
+  'done': 3,
 };
 
 export default function KanbanBoard() {
-  const [tasks, setTasks] = useState<Record<ColumnId, Task[]>>(initialTasks);
-  const [draggedItem, setDraggedItem] = useState<{ taskId: string; sourceColumnId: ColumnId } | null>(null);
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [editingTaskContent, setEditingTaskContent] = useState('');
-  const [newTaskContent, setNewTaskContent] = useState<Record<ColumnId, string>>({ todo: '', 'in-progress': '', done: '' });
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [graphData, setGraphData] = useState<{ nodes: GraphNode[], links: GraphLink[] }>({ nodes: [], links: [] });
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isLinkingMode, setIsLinkingMode] = useState(false);
+  const [firstLinkNode, setFirstLinkNode] = useState<GraphNode | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [sheetTask, setSheetTask] = useState<Partial<Task> | null>(null);
 
   useEffect(() => {
-    const q = collection(db, 'tasks');
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const newTasks: Record<ColumnId, Task[]> = { 'todo': [], 'in-progress': [], 'done': [] };
-      querySnapshot.forEach((doc) => {
-        const task = { id: doc.id, ...doc.data() } as Task;
-        if (newTasks[task.columnId]) {
-          newTasks[task.columnId].push(task);
-        }
-      });
-      setTasks(newTasks);
+    const unsubscribe = onSnapshot(collection(db, 'tasks'), (snapshot) => {
+      const fetchedTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
+      setTasks(fetchedTasks);
     });
-
-    return () => unsubscribe();
+    return unsubscribe;
   }, []);
 
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, taskId: string, sourceColumnId: ColumnId) => {
-    setDraggedItem({ taskId, sourceColumnId });
-    e.dataTransfer.effectAllowed = 'move';
+  useEffect(() => {
+    const nodes = tasks.map(task => ({
+      id: task.id,
+      group: statusToGroup[task.status],
+      fx: task.x,
+      fy: task.y
+    }));
+    const links = tasks.flatMap(task =>
+      task.dependencies.map(depId => ({
+        source: depId,
+        target: task.id,
+        value: 1
+      }))
+    );
+    setGraphData({ nodes, links });
+  }, [tasks]);
+
+  const handleNodeClick = useCallback((node: GraphNode | null) => {
+    if (!node) {
+      setSelectedTask(null);
+      if (isLinkingMode) {
+        setIsLinkingMode(false);
+        setFirstLinkNode(null);
+      }
+      return;
+    }
+
+    const task = tasks.find(t => t.id === node.id);
+    if (!task) return;
+
+    if (isLinkingMode && firstLinkNode && firstLinkNode.id !== node.id) {
+      const secondLinkNode = node;
+      const firstTask = tasks.find(t => t.id === firstLinkNode.id);
+      
+      if (firstTask && !firstTask.dependencies.includes(secondLinkNode.id)) {
+        const taskRef = doc(db, 'tasks', firstTask.id);
+        updateDoc(taskRef, {
+          dependencies: [...firstTask.dependencies, secondLinkNode.id]
+        });
+      }
+      // Also link target to source
+      const secondTask = tasks.find(t => t.id === secondLinkNode.id);
+      if (secondTask && !secondTask.dependencies.includes(firstLinkNode.id)) {
+        const taskRef = doc(db, 'tasks', secondTask.id);
+        updateDoc(taskRef, {
+            dependencies: [...secondTask.dependencies, firstLinkNode.id]
+        });
+      }
+
+
+      setFirstLinkNode(null);
+      setIsLinkingMode(false);
+    } else if (isLinkingMode) {
+      setFirstLinkNode(node);
+    } else {
+      setSelectedTask(task);
+      setSheetTask(task);
+      setIsSheetOpen(true);
+    }
+  }, [isLinkingMode, firstLinkNode, tasks]);
+
+  const handleNodeDrag = async (nodeId: string, newPosition: { x: number, y: number }) => {
+      const taskRef = doc(db, 'tasks', nodeId);
+      await updateDoc(taskRef, { x: newPosition.x, y: newPosition.y });
   };
   
-  const handleDragEnd = () => {
-    setDraggedItem(null);
-  }
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleSaveTask = async (e: React.FormEvent) => {
     e.preventDefault();
-  };
-  
-  const handleDrop = async (e: React.DragEvent<HTMLDivElement>, targetColumnId: ColumnId) => {
-    if (!draggedItem) return;
+    if (!sheetTask || !sheetTask.title) return;
 
-    const { taskId, sourceColumnId } = draggedItem;
-    if (sourceColumnId === targetColumnId) return;
+    const taskData: Omit<Task, 'id' | 'x' | 'y'> = {
+        title: sheetTask.title,
+        description: sheetTask.description || '',
+        status: sheetTask.status || 'todo',
+        dependencies: sheetTask.dependencies || []
+    };
+
+    if (sheetTask.id) { // Editing existing task
+        const taskRef = doc(db, 'tasks', sheetTask.id);
+        await updateDoc(taskRef, taskData);
+    } else { // Creating new task
+        await addDoc(collection(db, 'tasks'), taskData);
+    }
     
-    const taskRef = doc(db, 'tasks', taskId);
-    await updateDoc(taskRef, { columnId: targetColumnId });
-
-    setDraggedItem(null);
+    setIsSheetOpen(false);
+    setSheetTask(null);
   };
-
-  const handleAddTask = async (columnId: ColumnId) => {
-    const content = newTaskContent[columnId].trim();
-    if (!content) return;
-
-    await addDoc(collection(db, 'tasks'), {
-      content,
-      columnId,
-    });
-    setNewTaskContent(prev => ({...prev, [columnId]: ''}));
-  }
   
-  const handleDeleteTask = async (taskId: string) => {
-     await deleteDoc(doc(db, "tasks", taskId));
+  const handleCreateNewTask = () => {
+    setSheetTask({ title: '', description: '', status: 'todo', dependencies: [] });
+    setIsSheetOpen(true);
+    setSelectedTask(null);
   }
 
-  const handleStartEditing = (task: Task) => {
-    setEditingTaskId(task.id);
-    setEditingTaskContent(task.content);
-  }
+  const handleDeleteTask = async () => {
+    if (!selectedTask) return;
+    
+    const batch = writeBatch(db);
 
-  const handleConfirmEdit = async () => {
-    if (!editingTaskId) return;
+    // Delete the task itself
+    const taskRef = doc(db, 'tasks', selectedTask.id);
+    batch.delete(taskRef);
 
-    const taskRef = doc(db, 'tasks', editingTaskId);
-    await updateDoc(taskRef, { content: editingTaskContent });
-
-    setEditingTaskId(null);
-    setEditingTaskContent('');
+    // Remove this task from other tasks' dependency lists
+    tasks.forEach(task => {
+        if (task.dependencies.includes(selectedTask.id)) {
+            const otherTaskRef = doc(db, 'tasks', task.id);
+            const newDeps = task.dependencies.filter(dep => dep !== selectedTask.id);
+            batch.update(otherTaskRef, { dependencies: newDeps });
+        }
+    });
+    
+    await batch.commit();
+    setIsSheetOpen(false);
+    setSelectedTask(null);
   }
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6">Task Board</h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-        {columnData.map((column) => {
-          return (
-            <Card
-              key={column.id}
-              className="bg-card/50"
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, column.id)}
+    <div className="h-full min-h-[85vh] flex flex-col">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-3xl font-bold">Task Flow</h1>
+        <div className="flex gap-2">
+            <Button onClick={handleCreateNewTask}><Plus /> Add Task</Button>
+            <Button 
+                variant={isLinkingMode ? "secondary" : "outline"} 
+                onClick={() => {
+                    setIsLinkingMode(!isLinkingMode);
+                    setFirstLinkNode(null);
+                    setSelectedTask(null);
+                }}
             >
-              <CardHeader>
-                <CardTitle>{column.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <div className="min-h-[200px] flex flex-col gap-4">
-                  {tasks[column.id].map((task) => (
-                    <div
-                      key={task.id}
-                      draggable={!editingTaskId}
-                      onDragStart={(e) => handleDragStart(e, task.id, column.id)}
-                      onDragEnd={handleDragEnd}
-                      className="group p-4 bg-background rounded-lg shadow-sm cursor-grab active:cursor-grabbing flex justify-between items-center"
-                    >
-                      {editingTaskId === task.id ? (
-                        <Input 
-                            value={editingTaskContent}
-                            onChange={(e) => setEditingTaskContent(e.target.value)}
-                            onBlur={handleConfirmEdit}
-                            onKeyDown={(e) => e.key === 'Enter' && handleConfirmEdit()}
-                            autoFocus
-                            className="flex-grow"
-                        />
-                      ) : (
-                        <>
-                          <span>{task.content}</span>
-                          <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="icon" onClick={() => handleStartEditing(task)}>
-                                <Pencil className="h-4 w-4"/>
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteTask(task.id)}>
-                                <Trash2 className="h-4 w-4"/>
-                            </Button>
-                          </div>
-                        </>
+                <LinkIcon /> {isLinkingMode ? (firstLinkNode ? 'Select Target Task' : 'Select Source Task') : 'Link Tasks'}
+            </Button>
+        </div>
+      </div>
+      <Card className="flex-grow relative">
+        <ForceGraph 
+            data={graphData}
+            onNodeClick={handleNodeClick}
+            onNodeDrag={handleNodeDrag}
+            selectedNodeId={isLinkingMode ? firstLinkNode?.id : selectedTask?.id}
+            linkingNodeIds={isLinkingMode && firstLinkNode ? [firstLinkNode.id] : []}
+            repelStrength={-1000}
+            linkDistance={150}
+            centerForce={false}
+        />
+      </Card>
+      
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent>
+            <SheetHeader>
+                <SheetTitle>{sheetTask?.id ? 'Edit Task' : 'Create New Task'}</SheetTitle>
+            </SheetHeader>
+            {sheetTask && (
+                <form onSubmit={handleSaveTask} className="space-y-4 py-4">
+                     <div>
+                        <Label htmlFor="title">Title</Label>
+                        <Input id="title" value={sheetTask.title || ''} onChange={e => setSheetTask({...sheetTask, title: e.target.value})} required />
+                    </div>
+                     <div>
+                        <Label htmlFor="description">Description</Label>
+                        <Textarea id="description" value={sheetTask.description || ''} onChange={e => setSheetTask({...sheetTask, description: e.target.value})} />
+                    </div>
+                     <div>
+                        <Label htmlFor="status">Status</Label>
+                         <Select value={sheetTask.status || 'todo'} onValueChange={(value: TaskStatus) => setSheetTask({...sheetTask, status: value})}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="todo">To Do</SelectItem>
+                                <SelectItem value="in-progress">In Progress</SelectItem>
+                                <SelectItem value="done">Done</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex justify-between">
+                      <Button type="submit">
+                        {sheetTask.id ? 'Save Changes' : 'Create Task'}
+                      </Button>
+                      {sheetTask.id && (
+                        <Button type="button" variant="destructive" onClick={handleDeleteTask}>
+                           <Trash2 /> Delete Task
+                        </Button>
                       )}
                     </div>
-                  ))}
-                </div>
-                 <div className="flex gap-2 mt-auto">
-                    <Input 
-                      placeholder="Add a new task..." 
-                      value={newTaskContent[column.id]}
-                      onChange={(e) => setNewTaskContent(prev => ({...prev, [column.id]: e.target.value}))}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddTask(column.id)}
-                    />
-                    <Button onClick={() => handleAddTask(column.id)} size="icon">
-                        <Plus />
-                    </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                </form>
+            )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
+
+    
