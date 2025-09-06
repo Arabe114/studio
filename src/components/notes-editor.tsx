@@ -57,8 +57,8 @@ export default function NotesEditor() {
   };
 
   return (
-    <div className="flex flex-col h-full min-h-[85vh]">
-      <div className="flex justify-between items-center mb-4">
+    <div className="flex flex-col h-full max-h-[calc(100vh-4rem)]">
+      <div className="flex justify-between items-center mb-4 shrink-0">
         <h1 className="text-3xl font-bold">Notes Editor</h1>
         <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
             <Upload className="mr-2 h-4 w-4" />
@@ -76,11 +76,11 @@ export default function NotesEditor() {
       <Input 
         value={noteTitle}
         onChange={(e) => setNoteTitle(e.target.value)}
-        className="text-2xl font-semibold border-0 shadow-none focus-visible:ring-0 mb-4 p-0"
+        className="text-2xl font-semibold border-0 shadow-none focus-visible:ring-0 mb-4 p-0 shrink-0"
         placeholder="Note Title"
       />
 
-      <div className="flex items-center gap-2 mb-2 p-2 rounded-lg bg-card border">
+      <div className="flex items-center gap-2 mb-2 p-2 rounded-lg bg-card border shrink-0">
         <Button variant="outline" size="icon" onClick={() => applyFormat('bold')} title="Bold">
             <Bold className="h-4 w-4"/>
         </Button>
@@ -89,13 +89,13 @@ export default function NotesEditor() {
         </Button>
       </div>
 
-      <div className="flex-1 flex">
+      <div className="flex-grow flex flex-col">
         <Textarea
           ref={textareaRef}
           value={noteContent}
           onChange={(e) => setNoteContent(e.target.value)}
           placeholder="Start writing your notes here..."
-          className="w-full h-full resize-none text-base"
+          className="w-full h-full flex-grow resize-none text-base"
         />
       </div>
     </div>
