@@ -159,19 +159,20 @@ export default function KanbanBoard() {
   }
 
   const handleDeleteTask = async () => {
-    if (!selectedTask) return;
+    if (!sheetTask || !sheetTask.id) return;
     
     const batch = writeBatch(db);
+    const taskIdToDelete = sheetTask.id;
 
     // Delete the task itself
-    const taskRef = doc(db, 'tasks', selectedTask.id);
+    const taskRef = doc(db, 'tasks', taskIdToDelete);
     batch.delete(taskRef);
 
     // Remove this task from other tasks' dependency lists
     tasks.forEach(task => {
-        if (task.dependencies.includes(selectedTask.id)) {
+        if (task.dependencies.includes(taskIdToDelete)) {
             const otherTaskRef = doc(db, 'tasks', task.id);
-            const newDeps = task.dependencies.filter(dep => dep !== selectedTask.id);
+            const newDeps = task.dependencies.filter(dep => dep !== taskIdToDelete);
             batch.update(otherTaskRef, { dependencies: newDeps });
         }
     });
@@ -179,6 +180,7 @@ export default function KanbanBoard() {
     await batch.commit();
     setIsSheetOpen(false);
     setSelectedTask(null);
+    setSheetTask(null);
   }
 
   return (
@@ -212,7 +214,13 @@ export default function KanbanBoard() {
         />
       </Card>
       
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+      <Sheet open={isSheetOpen} onOpenChange={(isOpen) => {
+        setIsSheetOpen(isOpen);
+        if (!isOpen) {
+          setSheetTask(null);
+          setSelectedTask(null);
+        }
+      }}>
         <SheetContent>
             <SheetHeader>
                 <SheetTitle>{sheetTask?.id ? 'Edit Task' : 'Create New Task'}</SheetTitle>
@@ -257,5 +265,3 @@ export default function KanbanBoard() {
     </div>
   );
 }
-
-    
