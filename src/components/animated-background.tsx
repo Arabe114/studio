@@ -78,7 +78,7 @@ const AnimatedBackground = () => {
             }
         }
         
-        const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').split(' ');
+        const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim().split(' ');
         const primaryH = parseFloat(primaryColor[0]);
         const primaryS = parseFloat(primaryColor[1]);
         const primaryL = parseFloat(primaryColor[2]);

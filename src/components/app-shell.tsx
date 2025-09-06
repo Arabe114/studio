@@ -99,7 +99,7 @@ export default function AppShell() {
   };
 
   return (
-    <div className="flex h-screen w-full bg-background">
+    <div className="flex h-screen w-full bg-transparent">
       <AnimatedBackground />
       <nav
         className={cn(
@@ -184,7 +184,7 @@ export default function AppShell() {
             </button>
         </div>
       </nav>
-      <main className="flex-1 overflow-auto p-4 sm:p-6 bg-background/80 backdrop-blur-sm z-10">
+      <main className="flex-1 overflow-auto p-4 sm:p-6 bg-background/80 backdrop-blur-sm z-0">
         <div className="animate-in fade-in-50 duration-500">
            {renderModule()}
         </div>
