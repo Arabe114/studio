@@ -11,7 +11,7 @@ import ForceGraph from './force-graph';
 import type { Node, Link } from './force-graph';
 import { Button } from './ui/button';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, DocumentReference } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, DocumentReference, writeBatch } from 'firebase/firestore';
 
 
 type FirebaseNode = { id: string; group: number; };
@@ -20,7 +20,7 @@ type FirebaseLink = { source: string; target: string; value: number };
 
 export default function KnowledgeGraph() {
   const [repelStrength, setRepelStrength] = useState(-500);
-  const [linkDistance, setLinkDistance] = useState(50);
+  const [linkDistance, setLinkDistance]_ = useState(50);
   const [centerForce, setCenterForce] = useState(true);
   const [graphData, setGraphData] = useState<{ nodes: Node[], links: Link[] }>({ nodes: [], links: [] });
   
@@ -61,7 +61,7 @@ export default function KnowledgeGraph() {
   }, [selectedNode]);
 
   const handleNodeClick = (node: Node | null) => {
-    if (linkingNodes.length === 1 && node && linkingNodes[0].id !== node.id) {
+    if (linkingNodes.length >= 1 && node && !linkingNodes.some(n => n.id === node.id)) {
       setLinkingNodes(prev => [...prev, node]);
       setSelectedNode(null); 
     } else {
@@ -121,6 +121,39 @@ export default function KnowledgeGraph() {
     setSelectedNode(null);
   }
 
+   const handleLinkAll = async () => {
+    if (linkingNodes.length < 2) return;
+    
+    const batch = writeBatch(db);
+    const linksCollection = collection(db, 'kg-links');
+
+    for (let i = 0; i < linkingNodes.length; i++) {
+        for (let j = i + 1; j < linkingNodes.length; j++) {
+            const source = linkingNodes[i];
+            const target = linkingNodes[j];
+
+            const linkExists = graphData.links.some(
+                l => ((l.source as Node).id === source.id && (l.target as Node).id === target.id) ||
+                     ((l.source as Node).id === target.id && (l.target as Node).id === source.id)
+            );
+
+            if (!linkExists) {
+                const linkDocRef = doc(linksCollection);
+                batch.set(linkDocRef, {
+                    source: source.id,
+                    target: target.id,
+                    value: 1
+                });
+            }
+        }
+    }
+
+    await batch.commit();
+    setLinkingNodes([]);
+    setSelectedNode(null);
+  };
+
+
   const handleUpdateNodeName = async () => {
     if (!selectedNode || !editingNodeName || selectedNode.id === editingNodeName) return;
 
@@ -136,46 +169,7 @@ export default function KnowledgeGraph() {
           <h2 className="text-lg font-semibold">File Explorer</h2>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-2 text-sm">
-            <li>
-              <details open className="group">
-                <summary className="flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-foreground">
-                  <ChevronRight className="h-4 w-4 shrink-0 transition-transform group-open:rotate-90" />
-                  <Star className="h-4 w-4 shrink-0 text-yellow-500" />
-                  <span className="truncate">Favorites</span>
-                </summary>
-                <ul className="pl-6 pt-1 space-y-1">
-                  <li className="text-muted-foreground hover:text-foreground cursor-pointer truncate">Project Plan</li>
-                  <li className="text-muted-foreground hover:text-foreground cursor-pointer truncate">Meeting Notes</li>
-                </ul>
-              </details>
-            </li>
-            <li>
-              <details open className="group">
-                <summary className="flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-foreground">
-                  <ChevronRight className="h-4 w-4 shrink-0 transition-transform group-open:rotate-90" />
-                  <Folder className="h-4 w-4 shrink-0 text-blue-500" />
-                  <span className="truncate">ELN</span>
-                </summary>
-                <ul className="pl-6 pt-1 space-y-1">
-                  <li className="text-muted-foreground hover:text-foreground cursor-pointer truncate">Experiment 1</li>
-                  <li className="text-muted-foreground hover:text-foreground cursor-pointer truncate">Experiment 2</li>
-                </ul>
-              </details>
-            </li>
-            <li>
-              <details className="group">
-                <summary className="flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-foreground">
-                  <ChevronRight className="h-4 w-4 shrink-0 transition-transform group-open:rotate-90" />
-                  <Paperclip className="h-4 w-4 shrink-0 text-gray-500" />
-                  <span className="truncate">Attachments</span>
-                </summary>
-                 <ul className="pl-6 pt-1 space-y-1">
-                  <li className="text-muted-foreground hover:text-foreground cursor-pointer truncate">image.png</li>
-                </ul>
-              </details>
-            </li>
-          </ul>
+          {/* Mock data removed */}
         </CardContent>
       </Card>
 
@@ -191,12 +185,13 @@ export default function KnowledgeGraph() {
         />
         {linkingNodes.length > 0 && (
           <div className="absolute top-2 left-2 bg-card/80 p-2 rounded-lg text-sm shadow-lg animate-in fade-in-50">
-            <p className="font-semibold">Linking Nodes:</p>
-            <ul className="list-disc list-inside">
-                {linkingNodes.map(node => <li key={node.id}>{node.id}</li>)}
+            <p className="font-semibold">Linking Nodes ({linkingNodes.length}):</p>
+            <ul className="list-disc list-inside max-h-32 overflow-y-auto">
+                {linkingNodes.map(node => <li key={node.id} className="truncate">{node.id}</li>)}
             </ul>
             {linkingNodes.length === 1 && <p className="text-muted-foreground text-xs mt-1">Select another node to create a link.</p>}
             {linkingNodes.length === 2 && <Button size="sm" className="mt-2 w-full" onClick={handleCreateLink}>Create Link</Button>}
+            {linkingNodes.length > 2 && <Button size="sm" className="mt-2 w-full" onClick={handleLinkAll}>Link All Selected</Button>}
           </div>
         )}
       </div>
@@ -271,3 +266,5 @@ export default function KnowledgeGraph() {
     </div>
   );
 }
+
+    

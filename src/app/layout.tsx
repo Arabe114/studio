@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 export const metadata: Metadata = {
   title: 'ELN',
   description: 'Electronic Lab Notebook',
+  icons: null,
 };
 
 export default function RootLayout({
