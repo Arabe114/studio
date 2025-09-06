@@ -23,8 +23,13 @@ export type TechNewsOutput = z.infer<typeof TechNewsOutputSchema>;
 
 const techNewsPrompt = ai.definePrompt({
   name: 'techNewsPrompt',
+  input: {
+    schema: z.object({
+      currentDate: z.string(),
+    }),
+  },
   output: {schema: TechNewsOutputSchema},
-  prompt: `You are a tech news aggregator. Provide a list of the top 5 most important tech news headlines for today. For each headline, provide a brief summary.`,
+  prompt: `You are a tech news aggregator. Provide a list of the top 5 most important tech news headlines for today, {{{currentDate}}}. For each headline, provide a brief summary.`,
 });
 
 const fetchTechNewsFlow = ai.defineFlow(
@@ -33,7 +38,12 @@ const fetchTechNewsFlow = ai.defineFlow(
     outputSchema: TechNewsOutputSchema,
   },
   async () => {
-    const {output} = await techNewsPrompt();
+    const currentDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+    const {output} = await techNewsPrompt({currentDate});
     return output!;
   }
 );
