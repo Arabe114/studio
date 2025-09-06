@@ -70,7 +70,11 @@ export default function KnowledgeGraph() {
     const newNodeData = { 
         group: isFolder ? 6 : 5
     };
-    const newNodeId = `${baseName} ${Date.now()}`;
+    let newNodeId = `${baseName} ${Date.now()}`;
+    let counter = 1;
+    while(graphData.nodes.some(n => n.id === newNodeId)) {
+        newNodeId = `${baseName} ${Date.now()} (${counter++})`;
+    }
     
     await setDoc(doc(db, "kg-nodes", newNodeId), newNodeData);
 
@@ -79,30 +83,30 @@ export default function KnowledgeGraph() {
         const linkId = `${selectedNode.id}-${newNodeId}`;
         await setDoc(doc(db, "kg-links", linkId), newLink);
     }
-  }, [selectedNode]);
+  }, [selectedNode, graphData.nodes]);
   
   const handleDeleteSelected = async () => {
     if (!selectedNode) return;
 
     const batch = writeBatch(db);
     
-    // Delete the node
     const nodeRef = doc(db, "kg-nodes", selectedNode.id);
     batch.delete(nodeRef);
     
-    // Delete associated links
-    graphData.links.forEach(link => {
-        if ((link.source as any).id === selectedNode.id || (link.target as any).id === selectedNode.id || link.source === selectedNode.id || link.target === selectedNode.id) {
-            const linkId = `${link.source.toString()}-${link.target.toString()}`;
-            const reverseLinkId = `${link.target.toString()}-${link.source.toString()}`;
-            
-            const linkRef = doc(db, "kg-links", linkId);
-            batch.delete(linkRef);
-            
-            const reverseLinkRef = doc(db, "kg-links", reverseLinkId);
-            batch.delete(reverseLinkRef);
-        }
+    const linksToDelete = graphData.links.filter(link => {
+        const sourceId = (link.source as any).id || link.source;
+        const targetId = (link.target as any).id || link.target;
+        return sourceId === selectedNode.id || targetId === selectedNode.id;
     });
+
+    for (const link of linksToDelete) {
+        const sourceId = (link.source as any).id || link.source;
+        const targetId = (link.target as any).id || link.target;
+        const linkRef = doc(db, "kg-links", `${sourceId}-${targetId}`);
+        batch.delete(linkRef);
+        const reverseLinkRef = doc(db, "kg-links", `${targetId}-${sourceId}`);
+        batch.delete(reverseLinkRef);
+    }
 
     await batch.commit();
 
@@ -115,9 +119,10 @@ export default function KnowledgeGraph() {
     const [source, target] = linkingNodes;
     
     const linkExists = graphData.links.some(
-        l => ((l.source as any) === source.id && (l.target as any) === target.id) ||
-             ((l.source as any) === target.id && (l.target as any) === source.id)
+        l => (((l.source as any).id || l.source) === source.id && ((l.target as any).id || l.target) === target.id) ||
+             (((l.source as any).id || l.source) === target.id && ((l.target as any).id || l.target) === source.id)
     );
+
     if (linkExists) {
         setLinkingNodes([]);
         setSelectedNode(null);
@@ -141,8 +146,8 @@ export default function KnowledgeGraph() {
             const source = linkingNodes[i];
             const target = linkingNodes[j];
             const linkExists = graphData.links.some(
-                l => ((l.source as any) === source.id && (l.target as any) === target.id) ||
-                     ((l.source as any) === target.id && (l.target as any) === source.id)
+                l => (((l.source as any).id || l.source) === source.id && ((l.target as any).id || l.target) === target.id) ||
+                     (((l.source as any).id || l.source) === target.id && ((l.target as any).id || l.target) === source.id)
             );
             if (!linkExists) {
                 const newLink = { source: source.id, target: target.id, value: 1 };
@@ -164,30 +169,42 @@ export default function KnowledgeGraph() {
     const nodeExists = graphData.nodes.some(n => n.id === editingNodeName);
     if (nodeExists) {
         alert("A node with this name already exists.");
+        setEditingNodeName(selectedNode.id);
         return;
     }
-
-    await deleteDoc(doc(db, 'kg-nodes', selectedNode.id));
-    await setDoc(doc(db, 'kg-nodes', editingNodeName), { group: selectedNode.group });
-
     const batch = writeBatch(db);
-    graphData.links.forEach(async (l) => {
+
+    // Create new node with new name
+    const newNodeRef = doc(db, 'kg-nodes', editingNodeName);
+    batch.set(newNodeRef, { group: selectedNode.group });
+
+    // Re-create links with new node name
+    const relatedLinks = graphData.links.filter(l => {
         const sourceId = (l.source as any).id || l.source;
         const targetId = (l.target as any).id || l.target;
-
-        if (sourceId === selectedNode.id || targetId === selectedNode.id) {
-            const oldLinkId = `${sourceId}-${targetId}`;
-            await deleteDoc(doc(db, 'kg-links', oldLinkId));
-            
-            const newSource = sourceId === selectedNode.id ? editingNodeName : sourceId;
-            const newTarget = targetId === selectedNode.id ? editingNodeName : targetId;
-            const newLink = { source: newSource, target: newTarget, value: l.value };
-            const newLinkId = `${newSource}-${newTarget}`;
-            await setDoc(doc(db, 'kg-links', newLinkId), newLink);
-        }
+        return sourceId === selectedNode.id || targetId === selectedNode.id;
     });
-    await batch.commit();
 
+    relatedLinks.forEach(l => {
+        const sourceId = (l.source as any).id || l.source;
+        const targetId = (l.target as any).id || l.target;
+        
+        const oldLinkRef1 = doc(db, 'kg-links', `${sourceId}-${targetId}`);
+        batch.delete(oldLinkRef1);
+        const oldLinkRef2 = doc(db, 'kg-links', `${targetId}-${sourceId}`);
+        batch.delete(oldLinkRef2);
+
+        const newSource = sourceId === selectedNode.id ? editingNodeName : sourceId;
+        const newTarget = targetId === selectedNode.id ? editingNodeName : targetId;
+        const newLinkId = `${newSource}-${newTarget}`;
+        const newLinkRef = doc(db, 'kg-links', newLinkId);
+        batch.set(newLinkRef, { source: newSource, target: newTarget, value: l.value });
+    });
+    
+    const oldNodeRef = doc(db, 'kg-nodes', selectedNode.id);
+    batch.delete(oldNodeRef);
+
+    await batch.commit();
 
     setSelectedNode(prev => prev ? { ...prev, id: editingNodeName } : null);
   }

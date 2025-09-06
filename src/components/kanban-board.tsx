@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 
 
 type Task = {
@@ -44,7 +44,7 @@ export default function KanbanBoard() {
   useEffect(() => {
     const q = collection(db, 'tasks');
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const newTasks = { ...initialTasks };
+      const newTasks: Record<ColumnId, Task[]> = { 'todo': [], 'in-progress': [], 'done': [] };
       querySnapshot.forEach((doc) => {
         const task = { id: doc.id, ...doc.data() } as Task;
         if (newTasks[task.columnId]) {

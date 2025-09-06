@@ -23,7 +23,8 @@ export default function NotesEditor() {
         setNoteTitle(data.title || '');
         setNoteContent(data.content || '');
       } else {
-        console.log("No such document!");
+        // Create the doc if it doesn't exist
+        setDoc(noteRef, { title: "My Note", content: "Start writing here..." });
       }
     });
 
@@ -31,26 +32,23 @@ export default function NotesEditor() {
   }, []);
 
   const saveData = (title: string, content: string) => {
-      const noteRef = doc(db, 'notes', 'main-note');
-      setDoc(noteRef, { title, content }, { merge: true });
+      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+      debounceTimeout.current = setTimeout(() => {
+        const noteRef = doc(db, 'notes', 'main-note');
+        setDoc(noteRef, { title, content }, { merge: true });
+      }, 500);
   }
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setNoteTitle(newTitle);
-    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-    debounceTimeout.current = setTimeout(() => {
-        saveData(newTitle, noteContent);
-    }, 500);
+    saveData(newTitle, noteContent);
   }
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
     setNoteContent(newContent);
-    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-    debounceTimeout.current = setTimeout(() => {
-        saveData(noteTitle, newContent);
-    }, 500);
+    saveData(noteTitle, newContent);
   }
 
   const applyFormat = (format: 'bold' | 'italic') => {

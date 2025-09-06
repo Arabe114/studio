@@ -40,7 +40,12 @@ export default function PomodoroTimer() {
             const timersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Timer));
             setTimers(timersData);
         });
-        return () => unsubscribe();
+        return () => {
+             Object.values(intervalRefs.current).forEach(interval => {
+                if (interval) clearInterval(interval);
+            });
+            unsubscribe();
+        };
     }, []);
 
     // Effect to handle countdown
@@ -49,9 +54,16 @@ export default function PomodoroTimer() {
             if (timer.isActive) {
                 if (!intervalRefs.current[timer.id]) {
                     intervalRefs.current[timer.id] = setInterval(async () => {
-                        const timerRef = doc(db, 'timers', timer.id);
-                        const newTimeLeft = Math.max(0, timer.timeLeft - 1);
-                        await updateDoc(timerRef, { timeLeft: newTimeLeft });
+                        // We need to fetch the latest timer data from state inside interval
+                        setTimers(currentTimers => {
+                            const currentTimer = currentTimers.find(t => t.id === timer.id);
+                            if (currentTimer && currentTimer.timeLeft > 0) {
+                                const newTimeLeft = currentTimer.timeLeft - 1;
+                                const timerRef = doc(db, 'timers', timer.id);
+                                updateDoc(timerRef, { timeLeft: newTimeLeft });
+                            }
+                            return currentTimers;
+                        })
                     }, 1000);
                 }
             } else {
@@ -66,9 +78,8 @@ export default function PomodoroTimer() {
              Object.values(intervalRefs.current).forEach(interval => {
                 if (interval) clearInterval(interval);
             });
-            intervalRefs.current = {};
         };
-    }, [timers]);
+    }, [timers.map(t => t.isActive).join(',')]); // Rerun when any timer is toggled
 
     // Effect to handle timer completion
     useEffect(() => {
@@ -80,13 +91,14 @@ export default function PomodoroTimer() {
                 
                 const timerRef = doc(db, 'timers', timer.id);
                 await updateDoc(timerRef, {
-                    isActive: false,
+                    isActive: false, // Stop the timer
                     mode: newMode,
                     timeLeft: newTimeLeft,
                 });
             }
         });
-    }, [timers]);
+    }, [timers.map(t => t.timeLeft).join(',')]); // Rerun when any timer's time changes
+
 
     const toggleTimer = async (id: string) => {
         const timer = timers.find(t => t.id === id);
@@ -118,6 +130,10 @@ export default function PomodoroTimer() {
     };
 
     const deleteTimer = async (id: string) => {
+        if (intervalRefs.current[id]) {
+            clearInterval(intervalRefs.current[id]!);
+            intervalRefs.current[id] = null;
+        }
         await deleteDoc(doc(db, "timers", id));
     };
 
@@ -126,11 +142,13 @@ export default function PomodoroTimer() {
         if (!editingTimer) return;
         
         const timerRef = doc(db, 'timers', editingTimer.id);
+        const workDuration = editingTimer.workDuration;
+
         await updateDoc(timerRef, {
             name: editingTimer.name,
-            workDuration: editingTimer.workDuration,
+            workDuration: workDuration,
             breakDuration: editingTimer.breakDuration,
-            timeLeft: editingTimer.workDuration, // Reset time on edit
+            timeLeft: workDuration, // Reset time on edit
             isActive: false,
             mode: 'work',
         });
@@ -140,7 +158,7 @@ export default function PomodoroTimer() {
     };
 
     const openEditDialog = (timer: Timer) => {
-        setEditingTimer(timer);
+        setEditingTimer(JSON.parse(JSON.stringify(timer))); // Deep copy
         setIsEditDialogOpen(true);
     };
 
