@@ -11,7 +11,7 @@ import ForceGraph from './force-graph';
 import type { Node as GraphNode, Link, GraphData } from './force-graph';
 import { Button } from './ui/button';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, doc, deleteDoc, setDoc, writeBatch, query, where, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, doc, deleteDoc, setDoc, writeBatch, query, where, getDocs, WriteBatch } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 
 
@@ -75,7 +75,10 @@ function FileExplorer({ nodes, selectedFolderId, onSelectFolder, onRename, onDel
                     >
                        {isFolder && <ChevronRight className={cn("h-4 w-4 transform transition-transform", isExpanded && "rotate-90")} onClick={(e) => { e.stopPropagation(); toggleFolder(node.id); }} />}
                        {!isFolder && <div className="w-4"></div>}
-                       {isFolder ? <Folder className="h-4 w-4 text-primary group-hover:text-accent-foreground"/> : <File className="h-4 w-4 text-muted-foreground"/>}
+                        <Folder className={cn(
+                           "h-4 w-4 text-primary group-hover:text-accent-foreground",
+                           (selectedFolderId === node.id || editingFolderId === node.id) && "text-accent-foreground"
+                        )} />
                        
                        {editingFolderId === node.id ? (
                            <Input 
@@ -228,7 +231,7 @@ export default function KnowledgeGraph() {
     }
   }, [selectedNode, allNodes, selectedFolderId]);
   
-    const deleteNodeAndChildren = useCallback(async (nodeId: string, batch: any) => {
+    const deleteNodeAndChildren = useCallback(async (nodeId: string, batch: WriteBatch) => {
         const nodeToDelete = allNodes.find(n => n.id === nodeId);
         if (!nodeToDelete) return;
 
@@ -237,15 +240,16 @@ export default function KnowledgeGraph() {
         batch.delete(nodeRef);
 
         // Delete associated links
-        const linksQuerySnapshot = await getDocs(
-            query(collection(db, 'kg-links'), where('source', '==', nodeId))
-        );
-        linksQuerySnapshot.forEach(linkDoc => batch.delete(linkDoc.ref));
+        const sourceLinksQuery = query(collection(db, 'kg-links'), where('source', '==', nodeId));
+        const targetLinksQuery = query(collection(db, 'kg-links'), where('target', '==', nodeId));
+        
+        const [sourceLinksSnapshot, targetLinksSnapshot] = await Promise.all([
+            getDocs(sourceLinksQuery),
+            getDocs(targetLinksQuery),
+        ]);
 
-        const linksQuerySnapshot2 = await getDocs(
-            query(collection(db, 'kg-links'), where('target', '==', nodeId))
-        );
-        linksQuerySnapshot2.forEach(linkDoc => batch.delete(linkDoc.ref));
+        sourceLinksSnapshot.forEach(linkDoc => batch.delete(linkDoc.ref));
+        targetLinksSnapshot.forEach(linkDoc => batch.delete(linkDoc.ref));
 
         // If it's a folder, recursively delete children
         if (nodeToDelete.type === 'folder') {
@@ -405,7 +409,7 @@ export default function KnowledgeGraph() {
         </CardHeader>
         <CardContent>
            <FileExplorer 
-                nodes={allNodes}
+                nodes={allNodes.filter(n => n.type === 'folder')}
                 selectedFolderId={selectedFolderId}
                 onSelectFolder={setSelectedFolderId}
                 onRename={handleUpdateNodeName}
