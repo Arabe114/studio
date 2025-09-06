@@ -23,6 +23,7 @@ const AnimatedBackground = () => {
         const handleResize = () => {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
+            createWaves(); // Re-create waves on resize
         };
 
         const handleMouseMove = (event: MouseEvent) => {
@@ -63,33 +64,43 @@ const AnimatedBackground = () => {
                     const dy = this.y - mousePosition.current.y;
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     
-                    const maxSwell = 200;
+                    const maxSwell = 250;
                     const swell = 1 - (distance / maxSwell);
-                    const swellAmount = swell > 0 ? Math.sin(swell * Math.PI) * 80 : 0;
+                    const swellAmount = swell > 0 ? Math.sin(swell * Math.PI) * 60 : 0;
                     
                     const waveY = Math.sin(i * this.length + this.phase + frame * this.frequency) * this.amplitude + this.y + swellAmount;
                     context.lineTo(i, waveY);
                 }
 
                 context.strokeStyle = this.color;
-                context.lineWidth = 2;
+                context.lineWidth = 1.5;
                 context.stroke();
                 context.closePath();
             }
         }
         
-        const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim().split(' ');
-        const primaryH = parseFloat(primaryColor[0]);
-        const primaryS = parseFloat(primaryColor[1]);
-        const primaryL = parseFloat(primaryColor[2]);
+        let waves: Wave[] = [];
 
-        const waves = [
-            new Wave(height * 0.4, 0.01, 20, 0.01, `hsla(${primaryH}, ${primaryS}%, ${primaryL}%, 0.3)`),
-            new Wave(height * 0.45, 0.012, 30, 0.015, `hsla(${primaryH}, ${primaryS}%, ${primaryL}%, 0.4)`),
-            new Wave(height * 0.5, 0.008, 40, 0.02, `hsla(${primaryH}, ${primaryS}%, ${primaryL}%, 0.6)`),
-            new Wave(height * 0.55, 0.009, 30, 0.025, `hsla(${primaryH}, ${primaryS}%, ${primaryL}%, 0.4)`),
-            new Wave(height * 0.6, 0.01, 20, 0.03, `hsla(${primaryH}, ${primaryS}%, ${primaryL}%, 0.3)`),
-        ];
+        const createWaves = () => {
+            const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim().split(' ');
+            const primaryH = parseFloat(primaryColor[0]);
+            const primaryS = parseFloat(primaryColor[1]);
+            const primaryL = parseFloat(primaryColor[2]);
+            
+            const numberOfWaves = Math.floor(height / 50); // Create a wave every 50 pixels
+            waves = [];
+            for (let i = 0; i < numberOfWaves; i++) {
+                const y = (height / (numberOfWaves - 1)) * i;
+                const length = 0.005 + Math.random() * 0.01;
+                const amplitude = 15 + Math.random() * 20;
+                const frequency = 0.01 + Math.random() * 0.01;
+                const opacity = 0.2 + Math.random() * 0.3;
+                const color = `hsla(${primaryH}, ${primaryS}%, ${primaryL}%, ${opacity})`;
+                waves.push(new Wave(y, length, amplitude, frequency, color));
+            }
+        }
+
+        createWaves();
 
         let frame = 0;
         const animate = () => {
