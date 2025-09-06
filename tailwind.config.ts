@@ -93,6 +93,10 @@ export default {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
       },
+      boxShadow: {
+        'neon-primary': '0 0 8px hsl(var(--primary) / 0.5)',
+        'neon-accent': '0 0 8px hsl(var(--accent) / 0.5)',
+      }
     },
   },
   plugins: [require('tailwindcss-animate')],

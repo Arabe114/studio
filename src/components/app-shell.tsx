@@ -85,7 +85,7 @@ export default function AppShell() {
   return (
     <div className="flex h-screen w-full bg-background">
       <nav className="flex flex-col items-center gap-4 border-r border-border bg-card p-4 overflow-y-auto">
-        <div className="mb-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+        <div className="mb-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-neon-primary">
           <Hexagon className="h-6 w-6" />
         </div>
         <div className="flex flex-col gap-2">
@@ -96,7 +96,7 @@ export default function AppShell() {
               className={cn(
                 'flex h-10 w-10 items-center justify-center rounded-lg transition-colors',
                 'hover:bg-accent hover:text-accent-foreground',
-                activeModule === item.id ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'
+                activeModule === item.id ? 'bg-accent text-accent-foreground shadow-neon-accent' : 'text-muted-foreground'
               )}
               aria-label={item.label}
               title={item.label}
