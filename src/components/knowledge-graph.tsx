@@ -58,8 +58,11 @@ export default function KnowledgeGraph() {
 
   const handleNodeClick = (node: Node | null) => {
     if (linkingNodes.length === 1 && node && linkingNodes[0].id !== node.id) {
+      // If we are in linking mode and click a different node, add it for linking
       setLinkingNodes(prev => [...prev, node]);
+      setSelectedNode(null); // Deselect any primary node
     } else {
+      // Otherwise, handle normal selection
       setSelectedNode(node);
       setLinkingNodes(node ? [node] : []);
     }
@@ -212,15 +215,19 @@ export default function KnowledgeGraph() {
           data={graphData}
           onNodeClick={handleNodeClick}
           selectedNodeId={selectedNode?.id || null}
+          linkingNodeIds={linkingNodes.map(n => n.id)}
           repelStrength={repelStrength}
           linkDistance={linkDistance}
           centerForce={centerForce}
         />
         {linkingNodes.length > 0 && (
-          <div className="absolute top-2 left-2 bg-card/80 p-2 rounded-lg text-sm shadow-lg">
-            <p>Linking: <span className="font-semibold">{linkingNodes[0]?.id}</span></p>
-            {linkingNodes.length === 1 && <p className="text-muted-foreground">Select another node to link.</p>}
-            {linkingNodes.length === 2 && <p>...to <span className="font-semibold">{linkingNodes[1]?.id}</span></p>}
+          <div className="absolute top-2 left-2 bg-card/80 p-2 rounded-lg text-sm shadow-lg animate-in fade-in-50">
+            <p className="font-semibold">Linking Nodes:</p>
+            <ul className="list-disc list-inside">
+                {linkingNodes.map(node => <li key={node.id}>{node.id}</li>)}
+            </ul>
+            {linkingNodes.length === 1 && <p className="text-muted-foreground text-xs mt-1">Select another node to create a link.</p>}
+            {linkingNodes.length === 2 && <Button size="sm" className="mt-2 w-full" onClick={handleCreateLink}>Create Link</Button>}
           </div>
         )}
       </div>
@@ -234,14 +241,15 @@ export default function KnowledgeGraph() {
 
           {selectedNode && (
             <div className="space-y-2 animate-in fade-in-50">
-              <h3 className="font-medium">Edit Node</h3>
+              <h3 className="font-medium">Edit Node: <span className="font-normal text-muted-foreground">{selectedNode.id}</span></h3>
               <div className="flex gap-2">
                 <Input
                   value={editingNodeName}
                   onChange={(e) => setEditingNodeName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleUpdateNodeName()}
+                  placeholder="New node name..."
                 />
-                <Button variant="outline" size="icon" onClick={handleUpdateNodeName}><Edit /></Button>
+                <Button variant="outline" size="icon" onClick={handleUpdateNodeName} title="Rename Node"><Edit /></Button>
               </div>
             </div>
           )}
