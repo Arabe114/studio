@@ -26,30 +26,31 @@ const initialGraphData: GraphData = {
     links: []
 };
 
-function FileExplorer({ nodes, selectedFolderId, onSelectFolder, onRename, onDelete }) {
+function FileExplorer({ nodes, selectedNodeId, onSelectNode, onRename, onDelete, onSelectFolder, selectedFolderId }) {
     const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
-    const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
-    const [editingFolderName, setEditingFolderName] = useState('');
+    const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
+    const [editingNodeName, setEditingNodeName] = useState('');
 
     const handleRenameStart = (e, node: Node) => {
         e.stopPropagation();
-        setEditingFolderId(node.id);
-        setEditingFolderName(node.id);
+        setEditingNodeId(node.id);
+        setEditingNodeName(node.id);
     };
 
     const handleRenameConfirm = (e) => {
         e.stopPropagation();
-        if (editingFolderId && editingFolderName) {
-            onRename(editingFolderId, editingFolderName);
+        if (editingNodeId && editingNodeName) {
+            onRename(editingNodeId, editingNodeName);
         }
-        setEditingFolderId(null);
-        setEditingFolderName('');
+        setEditingNodeId(null);
+        setEditingNodeName('');
     };
     
-    const handleDelete = (e, nodeId) => {
+    const handleDelete = (e, node: Node) => {
         e.stopPropagation();
-        if (window.confirm(`Are you sure you want to delete this folder and all its contents?`)) {
-            onDelete(nodeId);
+        const nodeType = node.type === 'folder' ? 'folder and all its contents' : 'file';
+        if (window.confirm(`Are you sure you want to delete this ${nodeType}?`)) {
+            onDelete(node.id);
         }
     }
 
@@ -59,32 +60,55 @@ function FileExplorer({ nodes, selectedFolderId, onSelectFolder, onRename, onDel
     
     const rootNodes = useMemo(() => nodes.filter(n => n.parentId === null), [nodes]);
 
+    const handleNodeClick = (e, node: Node) => {
+        e.stopPropagation();
+        if (node.type === 'folder') {
+            onSelectFolder(node.id);
+        } else {
+            onSelectNode(node);
+        }
+    }
+
     const renderTree = (nodesToRender: Node[], level = 0) => {
+        // Sort to show folders first, then files alphabetically
+        nodesToRender.sort((a, b) => {
+            if (a.type === 'folder' && b.type !== 'folder') return -1;
+            if (a.type !== 'folder' && b.type === 'folder') return 1;
+            return a.id.localeCompare(b.id);
+        });
+
         return nodesToRender.map(node => {
             const isFolder = node.type === 'folder';
-            const children = isFolder ? nodes.filter(n => n.parentId === node.id) : [];
+            const children = nodes.filter(n => n.parentId === node.id);
             const isExpanded = expandedFolders[node.id] ?? true;
+            const isSelected = selectedNodeId === node.id || (isFolder && selectedFolderId === node.id);
 
             return (
                 <div key={node.id} style={{ marginLeft: `${level * 1.5}rem`}}>
                    <div 
                      className={cn(
                         "group flex items-center gap-2 p-1 rounded-md cursor-pointer hover:bg-accent",
-                        selectedFolderId === node.id && "bg-accent"
+                        isSelected && "bg-accent"
                      )}
-                     onClick={() => onSelectFolder(node.id)}
+                     onClick={(e) => handleNodeClick(e, node)}
                     >
-                       {isFolder && <ChevronRight className={cn("h-4 w-4 transform transition-transform", isExpanded && "rotate-90")} onClick={(e) => { e.stopPropagation(); toggleFolder(node.id); }} />}
-                       {!isFolder && <div className="w-4"></div>}
-                        <Folder className={cn(
-                           "h-4 w-4 text-primary transition-colors group-hover:text-accent-foreground",
-                           (selectedFolderId === node.id || editingFolderId === node.id) && "text-accent-foreground"
-                        )} />
+                       {isFolder ? (
+                           <ChevronRight className={cn("h-4 w-4 transform transition-transform", isExpanded && "rotate-90")} onClick={(e) => { e.stopPropagation(); toggleFolder(node.id); }} />
+                       ): (
+                           <div className="w-4 h-4" /> // Placeholder for alignment
+                       )}
                        
-                       {editingFolderId === node.id ? (
+                       {isFolder ? (
+                           <Folder className={cn("h-4 w-4 text-primary transition-colors group-hover:text-accent-foreground", isSelected && "text-accent-foreground")} />
+                        ) : (
+                           <File className={cn("h-4 w-4 text-primary transition-colors group-hover:text-accent-foreground", isSelected && "text-accent-foreground")} />
+                        )
+                       }
+                       
+                       {editingNodeId === node.id ? (
                            <Input 
-                                value={editingFolderName}
-                                onChange={(e) => setEditingFolderName(e.target.value)}
+                                value={editingNodeName}
+                                onChange={(e) => setEditingNodeName(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleRenameConfirm(e)}
                                 onBlur={handleRenameConfirm}
                                 onClick={(e) => e.stopPropagation()}
@@ -95,12 +119,12 @@ function FileExplorer({ nodes, selectedFolderId, onSelectFolder, onRename, onDel
                            <span className="truncate flex-grow">{node.id}</span>
                        )}
 
-                       {isFolder && editingFolderId !== node.id && (
+                       {editingNodeId !== node.id && (
                            <div className="flex items-center ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => handleRenameStart(e, node)} title="Rename Folder">
+                               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => handleRenameStart(e, node)} title={`Rename ${node.type}`}>
                                    <Edit className="h-3 w-3" />
                                </Button>
-                               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => handleDelete(e, node.id)} title="Delete Folder">
+                               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => handleDelete(e, node)} title={`Delete ${node.type}`}>
                                    <Trash2 className="h-3 w-3" />
                                </Button>
                            </div>
@@ -117,10 +141,10 @@ function FileExplorer({ nodes, selectedFolderId, onSelectFolder, onRename, onDel
     return (
         <div className="space-y-2">
             <div 
-                className={cn("flex items-center gap-2 p-1 rounded-md cursor-pointer hover:bg-accent", selectedFolderId === null && "bg-accent")}
+                className={cn("group flex items-center gap-2 p-1 rounded-md cursor-pointer hover:bg-accent", selectedFolderId === null && "bg-accent")}
                 onClick={() => onSelectFolder(null)}
             >
-                <Folder className="h-4 w-4 text-primary group-hover:text-accent-foreground" />
+                <Folder className={cn("h-4 w-4 text-primary transition-colors group-hover:text-accent-foreground", selectedFolderId === null && "text-accent-foreground")} />
                 <span>All Files</span>
             </div>
             {renderTree(rootNodes)}
@@ -243,8 +267,8 @@ export default function KnowledgeGraph() {
         }
     };
     
-    // If a node is selected, link to it.
-    if (selectedNode && selectedNode.id !== newNodeId) {
+    // If a file node is selected, link to it.
+    if (selectedNode && selectedNode.id !== newNodeId && selectedNode.type === 'file') {
         await createLink(selectedNode.id, newNodeId);
     }
 
@@ -260,6 +284,7 @@ export default function KnowledgeGraph() {
     const deleteNodeAndChildren = useCallback(async (nodeId: string) => {
         const batch = writeBatch(db);
         const nodesToDelete = new Set<string>();
+        const linksToDelete = new Set<string>();
 
         function findChildrenRecursive(id: string) {
             nodesToDelete.add(id);
@@ -269,24 +294,25 @@ export default function KnowledgeGraph() {
 
         findChildrenRecursive(nodeId);
 
-        const deletePromises: Promise<any>[] = [];
-
         nodesToDelete.forEach(id => {
             const nodeRef = doc(db, 'kg-nodes', id);
             batch.delete(nodeRef);
+        });
 
-            const sourceLinksQuery = query(collection(db, 'kg-links'), where('source', '==', id));
-            const targetLinksQuery = query(collection(db, 'kg-links'), where('target', '==', id));
-
-            deletePromises.push(getDocs(sourceLinksQuery).then(snapshot => {
-                snapshot.forEach(doc => batch.delete(doc.ref));
-            }));
-            deletePromises.push(getDocs(targetLinksQuery).then(snapshot => {
-                snapshot.forEach(doc => batch.delete(doc.ref));
-            }));
+        allLinks.forEach(link => {
+            const sourceId = (link.source as any).id || link.source;
+            const targetId = (link.target as any).id || link.target;
+            if (nodesToDelete.has(sourceId) || nodesToDelete.has(targetId)) {
+                const linkId = `${sourceId}-${targetId}`;
+                const reverseLinkId = `${targetId}-${sourceId}`;
+                
+                // We don't know the exact ID, so try deleting both potential IDs.
+                // It's safe to batch a delete for a non-existent doc.
+                batch.delete(doc(db, 'kg-links', linkId));
+                batch.delete(doc(db, 'kg-links', reverseLinkId));
+            }
         });
         
-        await Promise.all(deletePromises);
         await batch.commit();
 
         if (selectedNode && nodesToDelete.has(selectedNode.id)) {
@@ -297,7 +323,7 @@ export default function KnowledgeGraph() {
             setSelectedFolderId(null);
         }
 
-    }, [allNodes, selectedNode, selectedFolderId]);
+    }, [allNodes, allLinks, selectedNode, selectedFolderId]);
 
 
   const handleDeleteSelected = async () => {
@@ -306,10 +332,6 @@ export default function KnowledgeGraph() {
     setSelectedNode(null);
     setLinkingNodes([]);
   };
-
-    const handleDeleteFolder = useCallback(async (folderId: string) => {
-        await deleteNodeAndChildren(folderId);
-    }, [deleteNodeAndChildren]);
   
   const handleCreateLink = async () => {
     if (linkingNodes.length !== 2) return;
@@ -437,11 +459,13 @@ export default function KnowledgeGraph() {
         </CardHeader>
         <CardContent>
            <FileExplorer 
-                nodes={allNodes.filter(n => n.type === 'folder')}
-                selectedFolderId={selectedFolderId}
+                nodes={allNodes}
+                selectedNodeId={selectedNode?.id || null}
+                onSelectNode={handleNodeClick}
                 onSelectFolder={setSelectedFolderId}
+                selectedFolderId={selectedFolderId}
                 onRename={handleUpdateNodeName}
-                onDelete={handleDeleteFolder}
+                onDelete={deleteNodeAndChildren}
             />
         </CardContent>
       </Card>
@@ -476,7 +500,7 @@ export default function KnowledgeGraph() {
         <CardContent className="space-y-6">
           <Input placeholder="Search nodes..." />
 
-          {selectedNode && selectedNode.type === 'file' && (
+          {selectedNode && (
             <div className="space-y-2 animate-in fade-in-50">
               <h3 className="font-medium">Edit Selected: <span className="font-normal text-muted-foreground">{selectedNode.id}</span></h3>
               <div className="flex gap-2">
@@ -535,3 +559,6 @@ export default function KnowledgeGraph() {
   );
 }
 
+
+
+    
