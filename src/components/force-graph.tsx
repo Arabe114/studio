@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef, useMemo } from 'react';
@@ -203,7 +202,7 @@ export default function ForceGraph({
       simulation.stop();
       resizeObserver.disconnect();
     };
-  }, [data, onNodeClick, linkDistance, repelStrength, centerForce]);
+  }, [nodes, links, onNodeClick, linkDistance, repelStrength, centerForce]);
   
   // Effect for handling selection
   useEffect(() => {
@@ -263,7 +262,7 @@ export default function ForceGraph({
     if (onCenterViewComplete) {
       onCenterViewComplete();
     }
-  }, [centerView, nodes, onCenterViewComplete]);
+  }, [centerView, onCenterViewComplete, nodes]);
 
 
   function drag(simulation: d3.Simulation<Node, Link>) {
@@ -281,8 +280,9 @@ export default function ForceGraph({
       if (onNodeDrag) {
           onNodeDrag(d.id, { x: d.x!, y: d.y! });
       }
-      d.fx = null;
-      d.fy = null;
+      // Commenting this out to keep node fixed after drag
+      // d.fx = null;
+      // d.fy = null;
     }
     return d3.drag<SVGGElement, Node>()
       .on('start', dragstarted)
@@ -292,3 +292,5 @@ export default function ForceGraph({
 
   return <svg ref={svgRef} width="100%" height="100%"></svg>;
 }
+
+    
