@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { ChevronRight, Folder, Star, Paperclip, FilePlus, FolderPlus, Trash2, Upload, FileCode } from 'lucide-react';
+import { ChevronRight, Folder, Star, Paperclip, FilePlus, FolderPlus, Trash2, Upload, FileCode, Link as LinkIcon, Edit } from 'lucide-react';
 import ForceGraph from './force-graph';
 import type { Node, Link } from './force-graph';
 import { Button } from './ui/button';
@@ -43,12 +43,32 @@ export default function KnowledgeGraph() {
   const [linkDistance, setLinkDistance] = useState(50);
   const [centerForce, setCenterForce] = useState(true);
   const [graphData, setGraphData] = useState<{ nodes: Node[], links: Link[] }>(initialData);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [linkingNodes, setLinkingNodes] = useState<Node[]>([]);
+  const [editingNodeName, setEditingNodeName] = useState('');
+
+  useEffect(() => {
+    if (selectedNode) {
+      setEditingNodeName(selectedNode.id);
+    } else {
+      setEditingNodeName('');
+    }
+  }, [selectedNode]);
+
+  const handleNodeClick = (node: Node | null) => {
+    if (linkingNodes.length === 1 && node && linkingNodes[0].id !== node.id) {
+      setLinkingNodes(prev => [...prev, node]);
+    } else {
+      setSelectedNode(node);
+      setLinkingNodes(node ? [node] : []);
+    }
+  };
 
   const handleAddNode = () => {
     const newNodeId = `New Node ${graphData.nodes.length + 1}`;
     const newNode: Node = { id: newNodeId, group: 5 };
-    const newLink: Link | null = selectedNodeId ? { source: selectedNodeId, target: newNodeId, value: 1 } : null;
+    const newLink: Link | null = selectedNode ? { source: selectedNode.id, target: newNodeId, value: 1 } : null;
 
     setGraphData(prev => ({
       nodes: [...prev.nodes, newNode],
@@ -59,7 +79,7 @@ export default function KnowledgeGraph() {
   const handleAddFolder = () => {
     const newFolderId = `New Folder ${graphData.nodes.length + 1}`;
     const newNode: Node = { id: newFolderId, group: 6 }; // Different group for folders
-     const newLink: Link | null = selectedNodeId ? { source: selectedNodeId, target: newFolderId, value: 1 } : null;
+     const newLink: Link | null = selectedNode ? { source: selectedNode.id, target: newFolderId, value: 1 } : null;
 
     setGraphData(prev => ({
       nodes: [...prev.nodes, newNode],
@@ -68,16 +88,75 @@ export default function KnowledgeGraph() {
   };
   
   const handleDeleteSelected = () => {
-    if (!selectedNodeId) return;
+    if (!selectedNode) return;
 
     setGraphData(prev => {
-      const newNodes = prev.nodes.filter(node => node.id !== selectedNodeId);
-      const newLinks = prev.links.filter(link => link.source !== selectedNodeId && link.target !== selectedNodeId);
+      const newNodes = prev.nodes.filter(node => node.id !== selectedNode.id);
+      const newLinks = prev.links.filter(link => 
+        (link.source as Node).id !== selectedNode.id && (link.target as Node).id !== selectedNode.id &&
+        link.source !== selectedNode.id && link.target !== selectedNode.id
+      );
       return { nodes: newNodes, links: newLinks };
     });
-    setSelectedNodeId(null);
+    setSelectedNode(null);
   };
   
+  const handleCreateLink = () => {
+    if (linkingNodes.length !== 2) return;
+    const [source, target] = linkingNodes;
+    
+    // Avoid creating duplicate links
+    const linkExists = graphData.links.some(
+      l => ((l.source as Node).id === source.id && (l.target as Node).id === target.id) ||
+           ((l.source as Node).id === target.id && (l.target as Node).id === source.id)
+    );
+
+    if (!linkExists) {
+      const newLink = { source: source.id, target: target.id, value: 1 };
+      setGraphData(prev => ({ ...prev, links: [...prev.links, newLink]}));
+    }
+    setLinkingNodes([]);
+    setSelectedNode(null);
+  }
+
+  const handleUpdateNodeName = () => {
+    if (!selectedNode || !editingNodeName || selectedNode.id === editingNodeName) return;
+
+    setGraphData(prev => {
+      const isIdTaken = prev.nodes.some(n => n.id === editingNodeName);
+      if (isIdTaken) {
+        alert("A node with this name already exists.");
+        return prev;
+      }
+
+      const newNodes = prev.nodes.map(node => 
+        node.id === selectedNode.id ? { ...node, id: editingNodeName } : node
+      );
+
+      const newLinks = prev.links.map(link => {
+        let newSource = link.source;
+        let newTarget = link.target;
+        if ((link.source as Node).id === selectedNode.id) {
+          newSource = editingNodeName;
+        } else if (link.source === selectedNode.id) {
+          newSource = editingNodeName;
+        }
+        if ((link.target as Node).id === selectedNode.id) {
+          newTarget = editingNodeName;
+        } else if (link.target === selectedNode.id) {
+          newTarget = editingNodeName;
+        }
+        return { ...link, source: newSource, target: newTarget };
+      });
+      
+      const newSelectedNode = { ...selectedNode, id: editingNodeName };
+      setSelectedNode(newSelectedNode);
+      setLinkingNodes([newSelectedNode]);
+      
+      return { nodes: newNodes, links: newLinks };
+    });
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-full min-h-[85vh]">
       <Card className="lg:col-span-1 bg-card/50 hidden lg:block">
@@ -128,15 +207,22 @@ export default function KnowledgeGraph() {
         </CardContent>
       </Card>
 
-      <div className="lg:col-span-2 h-[50vh] lg:h-full rounded-lg border bg-background">
+      <div className="lg:col-span-2 h-[50vh] lg:h-full rounded-lg border bg-background relative">
         <ForceGraph 
           data={graphData}
-          onNodeClick={(nodeId) => setSelectedNodeId(nodeId)}
-          selectedNodeId={selectedNodeId}
+          onNodeClick={handleNodeClick}
+          selectedNodeId={selectedNode?.id || null}
           repelStrength={repelStrength}
           linkDistance={linkDistance}
           centerForce={centerForce}
         />
+        {linkingNodes.length > 0 && (
+          <div className="absolute top-2 left-2 bg-card/80 p-2 rounded-lg text-sm shadow-lg">
+            <p>Linking: <span className="font-semibold">{linkingNodes[0]?.id}</span></p>
+            {linkingNodes.length === 1 && <p className="text-muted-foreground">Select another node to link.</p>}
+            {linkingNodes.length === 2 && <p>...to <span className="font-semibold">{linkingNodes[1]?.id}</span></p>}
+          </div>
+        )}
       </div>
 
       <Card className="lg:col-span-1 bg-card/50">
@@ -146,14 +232,29 @@ export default function KnowledgeGraph() {
         <CardContent className="space-y-6">
           <Input placeholder="Search nodes..." />
 
+          {selectedNode && (
+            <div className="space-y-2 animate-in fade-in-50">
+              <h3 className="font-medium">Edit Node</h3>
+              <div className="flex gap-2">
+                <Input
+                  value={editingNodeName}
+                  onChange={(e) => setEditingNodeName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleUpdateNodeName()}
+                />
+                <Button variant="outline" size="icon" onClick={handleUpdateNodeName}><Edit /></Button>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <h3 className="font-medium">Actions</h3>
             <div className="grid grid-cols-2 gap-2">
                <Button variant="outline" size="sm" onClick={handleAddNode}><FilePlus /> New Node</Button>
                <Button variant="outline" size="sm" onClick={handleAddFolder}><FolderPlus /> New Folder</Button>
+               <Button variant="outline" size="sm" onClick={handleCreateLink} disabled={linkingNodes.length !== 2}><LinkIcon /> Link Nodes</Button>
+               <Button variant="destructive" size="sm" onClick={handleDeleteSelected} disabled={!selectedNode}><Trash2 /> Delete</Button>
             </div>
-            <div className="grid grid-cols-1 gap-2">
-              <Button variant="outline" size="sm" className="w-full" onClick={handleDeleteSelected} disabled={!selectedNodeId}><Trash2 /> Delete Selected</Button>
+             <div className="grid grid-cols-1 gap-2 pt-2">
               <Button variant="outline" size="sm" className="w-full"><Upload /> Import Folder</Button>
               <Button variant="outline" size="sm" className="w-full"><FileCode /> Add Project Files</Button>
             </div>
