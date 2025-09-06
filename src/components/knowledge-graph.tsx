@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Edit, FilePlus, FolderPlus, Link as LinkIcon, Trash2, ChevronRight, Folder, File } from 'lucide-react';
+import { Edit, FilePlus, FolderPlus, Link as LinkIcon, Trash2, ChevronRight, Folder, File, Check } from 'lucide-react';
 import ForceGraph from './force-graph';
 import type { Node as GraphNode, Link, GraphData } from './force-graph';
 import { Button } from './ui/button';
@@ -25,8 +25,32 @@ const initialGraphData: GraphData = {
     links: []
 };
 
-function FileExplorer({ nodes, selectedFolderId, onSelectFolder, onRename, onAdd }) {
+function FileExplorer({ nodes, selectedFolderId, onSelectFolder, onRename, onDelete, onAdd }) {
     const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
+    const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+    const [editingFolderName, setEditingFolderName] = useState('');
+
+    const handleRenameStart = (e, node: Node) => {
+        e.stopPropagation();
+        setEditingFolderId(node.id);
+        setEditingFolderName(node.id);
+    };
+
+    const handleRenameConfirm = (e) => {
+        e.stopPropagation();
+        if (editingFolderId && editingFolderName) {
+            onRename(editingFolderId, editingFolderName);
+        }
+        setEditingFolderId(null);
+        setEditingFolderName('');
+    };
+    
+    const handleDelete = (e, nodeId) => {
+        e.stopPropagation();
+        if (window.confirm(`Are you sure you want to delete this folder and all its contents?`)) {
+            onDelete(nodeId);
+        }
+    }
 
     const toggleFolder = (folderId: string) => {
         setExpandedFolders(prev => ({...prev, [folderId]: !prev[folderId]}));
@@ -38,13 +62,13 @@ function FileExplorer({ nodes, selectedFolderId, onSelectFolder, onRename, onAdd
         return nodesToRender.map(node => {
             const isFolder = node.type === 'folder';
             const children = isFolder ? nodes.filter(n => n.parentId === node.id) : [];
-            const isExpanded = expandedFolders[node.id];
+            const isExpanded = expandedFolders[node.id] ?? true;
 
             return (
                 <div key={node.id} style={{ marginLeft: `${level * 1.5}rem`}}>
                    <div 
                      className={cn(
-                        "flex items-center gap-2 p-1 rounded-md cursor-pointer hover:bg-accent",
+                        "group flex items-center gap-2 p-1 rounded-md cursor-pointer hover:bg-accent",
                         selectedFolderId === node.id && "bg-accent"
                      )}
                      onClick={() => onSelectFolder(node.id)}
@@ -52,7 +76,31 @@ function FileExplorer({ nodes, selectedFolderId, onSelectFolder, onRename, onAdd
                        {isFolder && <ChevronRight className={cn("h-4 w-4 transform transition-transform", isExpanded && "rotate-90")} onClick={(e) => { e.stopPropagation(); toggleFolder(node.id); }} />}
                        {!isFolder && <div className="w-4"></div>}
                        {isFolder ? <Folder className="h-4 w-4 text-primary"/> : <File className="h-4 w-4 text-muted-foreground"/>}
-                       <span className="truncate flex-grow">{node.id}</span>
+                       
+                       {editingFolderId === node.id ? (
+                           <Input 
+                                value={editingFolderName}
+                                onChange={(e) => setEditingFolderName(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleRenameConfirm(e)}
+                                onBlur={handleRenameConfirm}
+                                onClick={(e) => e.stopPropagation()}
+                                className="h-7"
+                                autoFocus
+                           />
+                       ) : (
+                           <span className="truncate flex-grow">{node.id}</span>
+                       )}
+
+                       {isFolder && editingFolderId !== node.id && (
+                           <div className="hidden group-hover:flex items-center ml-auto">
+                               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => handleRenameStart(e, node)} title="Rename Folder">
+                                   <Edit className="h-3 w-3" />
+                               </Button>
+                               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => handleDelete(e, node.id)} title="Delete Folder">
+                                   <Trash2 className="h-3 w-3" />
+                               </Button>
+                           </div>
+                       )}
                    </div>
                     {isFolder && isExpanded && (
                         <div>{renderTree(children, level + 1)}</div>
@@ -180,12 +228,7 @@ export default function KnowledgeGraph() {
     }
   }, [selectedNode, allNodes, selectedFolderId]);
   
-  const handleDeleteSelected = async () => {
-    if (!selectedNode) return;
-
-    const batch = writeBatch(db);
-
-    const deleteNodeAndChildren = async (nodeId: string) => {
+  const deleteNodeAndChildren = async (nodeId: string, batch: any) => {
         const nodeToDelete = allNodes.find(n => n.id === nodeId);
         if (!nodeToDelete) return;
 
@@ -202,28 +245,44 @@ export default function KnowledgeGraph() {
         for (const link of linksToDelete) {
             const sourceId = (link.source as any).id || link.source;
             const targetId = (link.target as any).id || link.target;
-            const linkRef = doc(db, "kg-links", `${sourceId}-${targetId}`);
-            batch.delete(linkRef);
-            const reverseLinkRef = doc(db, "kg-links", `${targetId}-${sourceId}`);
-            batch.delete(reverseLinkRef);
+            const linkId = `${sourceId}-${targetId}`;
+            const reverseLinkId = `${targetId}-${sourceId}`;
+            batch.delete(doc(db, "kg-links", linkId));
+            batch.delete(doc(db, "kg-links", reverseLinkId));
         }
 
         // If it's a folder, recursively delete children
         if (nodeToDelete.type === 'folder') {
-            const q = query(collection(db, "kg-nodes"), where("parentId", "==", nodeId));
-            const childrenSnapshot = await getDocs(q);
-            for (const childDoc of childrenSnapshot.docs) {
-                await deleteNodeAndChildren(childDoc.id);
+            const children = allNodes.filter(n => n.parentId === nodeId);
+            for (const child of children) {
+                await deleteNodeAndChildren(child.id, batch);
             }
         }
     }
-    
-    await deleteNodeAndChildren(selectedNode.id);
+
+  const handleDeleteSelected = async () => {
+    if (!selectedNode) return;
+    const batch = writeBatch(db);
+    await deleteNodeAndChildren(selectedNode.id, batch);
     await batch.commit();
 
     setSelectedNode(null);
     setLinkingNodes([]);
   };
+
+  const handleDeleteFolder = async (folderId: string) => {
+    const batch = writeBatch(db);
+    await deleteNodeAndChildren(folderId, batch);
+    await batch.commit();
+
+    if (selectedFolderId === folderId) {
+        setSelectedFolderId(null);
+    }
+    if(selectedNode?.id === folderId) {
+        setSelectedNode(null);
+        setLinkingNodes([]);
+    }
+  }
   
   const handleCreateLink = async () => {
     if (linkingNodes.length !== 2) return;
@@ -274,69 +333,72 @@ export default function KnowledgeGraph() {
     setSelectedNode(null);
   };
 
-  const handleUpdateNodeName = async () => {
-    if (!selectedNode || !editingNodeName || selectedNode.id === editingNodeName) return;
+    const handleUpdateNodeName = async (oldNodeId: string, newNodeName: string) => {
+        if (!newNodeName || oldNodeId === newNodeName) return;
 
-    const nodeExists = allNodes.some(n => n.id === editingNodeName);
-    if (nodeExists) {
-        alert("A node with this name already exists.");
-        setEditingNodeName(selectedNode.id);
-        return;
-    }
-    
-    const batch = writeBatch(db);
-    const oldNodeId = selectedNode.id;
-
-    // Create new node with new ID and same data
-    const newNodeRef = doc(db, 'kg-nodes', editingNodeName);
-    batch.set(newNodeRef, { 
-      group: selectedNode.group,
-      type: selectedNode.type,
-      parentId: selectedNode.parentId
-    });
-
-    // Re-create links with new node name
-    const relatedLinks = allLinks.filter(l => {
-        const sourceId = (l.source as any).id || l.source;
-        const targetId = (l.target as any).id || l.target;
-        return sourceId === oldNodeId || targetId === oldNodeId;
-    });
-
-    relatedLinks.forEach(l => {
-        const sourceId = (l.source as any).id || l.source;
-        const targetId = (l.target as any).id || l.target;
+        const nodeExists = allNodes.some(n => n.id === newNodeName);
+        if (nodeExists) {
+            alert("A node or folder with this name already exists.");
+            return;
+        }
         
-        // Delete old links
-        const oldLinkRef1 = doc(db, 'kg-links', `${sourceId}-${targetId}`);
-        batch.delete(oldLinkRef1);
-        const oldLinkRef2 = doc(db, 'kg-links', `${targetId}-${sourceId}`);
-        batch.delete(oldLinkRef2);
+        const batch = writeBatch(db);
+        const oldNodeData = allNodes.find(n => n.id === oldNodeId);
+        if (!oldNodeData) return;
 
-        // Create new links
-        const newSource = sourceId === oldNodeId ? editingNodeName : sourceId;
-        const newTarget = targetId === oldNodeId ? editingNodeName : targetId;
-        const newLinkId = `${newSource}-${newTarget}`;
-        const newLinkRef = doc(db, 'kg-links', newLinkId);
-        batch.set(newLinkRef, { source: newSource, target: newTarget, value: l.value });
-    });
-
-    // Update parentId for all children
-    if (selectedNode.type === 'folder') {
-        const children = allNodes.filter(n => n.parentId === oldNodeId);
-        children.forEach(child => {
-            const childRef = doc(db, 'kg-nodes', child.id);
-            batch.update(childRef, { parentId: editingNodeName });
+        // Create new node with new ID and same data
+        const newNodeRef = doc(db, 'kg-nodes', newNodeName);
+        batch.set(newNodeRef, { 
+            group: oldNodeData.group,
+            type: oldNodeData.type,
+            parentId: oldNodeData.parentId
         });
+
+        // Re-create links with new node name
+        const relatedLinks = allLinks.filter(l => {
+            const sourceId = (l.source as any).id || l.source;
+            const targetId = (l.target as any).id || l.target;
+            return sourceId === oldNodeId || targetId === oldNodeId;
+        });
+
+        relatedLinks.forEach(l => {
+            const sourceId = (l.source as any).id || l.source;
+            const targetId = (l.target as any).id || l.target;
+            
+            const oldLinkRef = doc(db, 'kg-links', `${sourceId}-${targetId}`);
+            batch.delete(oldLinkRef);
+            const oldReverseLinkRef = doc(db, 'kg-links', `${targetId}-${sourceId}`);
+            batch.delete(oldReverseLinkRef);
+
+            const newSource = sourceId === oldNodeId ? newNodeName : sourceId;
+            const newTarget = targetId === oldNodeId ? newNodeName : targetId;
+            const newLinkId = `${newSource}-${newTarget}`;
+            const newLinkRef = doc(db, 'kg-links', newLinkId);
+            batch.set(newLinkRef, { source: newSource, target: newTarget, value: l.value });
+        });
+        
+        // Update parentId for all children if it was a folder
+        if (oldNodeData.type === 'folder') {
+            const children = allNodes.filter(n => n.parentId === oldNodeId);
+            children.forEach(child => {
+                const childRef = doc(db, 'kg-nodes', child.id);
+                batch.update(childRef, { parentId: newNodeName });
+            });
+        }
+        
+        // Delete the old node
+        const oldNodeRef = doc(db, 'kg-nodes', oldNodeId);
+        batch.delete(oldNodeRef);
+
+        await batch.commit();
+
+        if (selectedNode?.id === oldNodeId) {
+             setSelectedNode(prev => prev ? { ...prev, id: newNodeName } : null);
+        }
+        if (selectedFolderId === oldNodeId) {
+            setSelectedFolderId(newNodeName);
+        }
     }
-    
-    // Delete the old node
-    const oldNodeRef = doc(db, 'kg-nodes', oldNodeId);
-    batch.delete(oldNodeRef);
-
-    await batch.commit();
-
-    setSelectedNode(prev => prev ? { ...prev, id: editingNodeName } : null);
-  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-full min-h-[85vh]">
@@ -349,7 +411,8 @@ export default function KnowledgeGraph() {
                 nodes={allNodes}
                 selectedFolderId={selectedFolderId}
                 onSelectFolder={setSelectedFolderId}
-                onRename={() => {}}
+                onRename={handleUpdateNodeName}
+                onDelete={handleDeleteFolder}
                 onAdd={() => {}}
             />
         </CardContent>
@@ -385,17 +448,17 @@ export default function KnowledgeGraph() {
         <CardContent className="space-y-6">
           <Input placeholder="Search nodes..." />
 
-          {selectedNode && (
+          {selectedNode && selectedNode.type === 'file' && (
             <div className="space-y-2 animate-in fade-in-50">
               <h3 className="font-medium">Edit Selected: <span className="font-normal text-muted-foreground">{selectedNode.id}</span></h3>
               <div className="flex gap-2">
                 <Input
                   value={editingNodeName}
                   onChange={(e) => setEditingNodeName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleUpdateNodeName()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleUpdateNodeName(selectedNode.id, editingNodeName)}
                   placeholder="New name..."
                 />
-                <Button variant="outline" size="icon" onClick={handleUpdateNodeName} title="Rename Node"><Edit /></Button>
+                <Button variant="outline" size="icon" onClick={() => handleUpdateNodeName(selectedNode.id, editingNodeName)} title="Rename Node"><Check /></Button>
               </div>
             </div>
           )}
