@@ -15,6 +15,9 @@ import {
   Newspaper,
   ChevronsLeft,
   ChevronsRight,
+  Settings,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Dashboard from '@/components/dashboard';
@@ -26,6 +29,14 @@ import PomodoroTimer from '@/components/pomodoro-timer';
 import BudgetTracker from '@/components/budget-tracker';
 import AiTools from '@/components/ai-tools';
 import TechNews from '@/components/tech-news';
+import { useTheme } from 'next-themes';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from './ui/button';
 
 type Module =
   | 'dashboard'
@@ -59,6 +70,7 @@ const navItems: NavItem[] = [
 export default function AppShell() {
   const [activeModule, setActiveModule] = useState<Module>('dashboard');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const { setTheme } = useTheme();
 
   const renderModule = () => {
     switch (activeModule) {
@@ -128,7 +140,34 @@ export default function AppShell() {
           ))}
         </div>
         
-        <div className="mt-auto">
+        <div className="mt-auto flex flex-col gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className={cn(
+                'flex h-10 items-center gap-3 rounded-lg px-3 text-muted-foreground transition-colors',
+                'hover:bg-accent hover:text-accent-foreground',
+                 isSidebarExpanded ? 'w-full justify-start' : 'w-10 justify-center'
+              )}>
+                <Settings className="h-5 w-5 shrink-0" />
+                {isSidebarExpanded && <span className="truncate">Settings</span>}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" align="end">
+              <DropdownMenuItem onClick={() => setTheme("light")}>
+                <Sun className="mr-2 h-4 w-4" />
+                <span>Light</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTheme("dark")}>
+                <Moon className="mr-2 h-4 w-4" />
+                <span>Dark</span>
+              </DropdownMenuItem>
+               <DropdownMenuItem onClick={() => setTheme("system")}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>System</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
            <button
               onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
               className={cn(
