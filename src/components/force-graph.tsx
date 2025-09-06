@@ -3,44 +3,20 @@
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 
-type Node = { id: string; group: number };
-type Link = { source: string; target: string; value: number };
-type GraphData = { nodes: Node[]; links: Link[] };
-
-const data: GraphData = {
-  nodes: [
-    { id: 'Project A', group: 1 },
-    { id: 'Team Lead', group: 1 },
-    { id: 'Task 1.1', group: 1 },
-    { id: 'Task 1.2', group: 1 },
-    { id: 'Project B', group: 2 },
-    { id: 'Developer X', group: 2 },
-    { id: 'Task 2.1', group: 2 },
-    { id: 'Bug Report', group: 3 },
-    { id: 'QA Tester', group: 3 },
-    { id: 'Documentation', group: 4 },
-  ],
-  links: [
-    { source: 'Project A', target: 'Team Lead', value: 1 },
-    { source: 'Team Lead', target: 'Task 1.1', value: 8 },
-    { source: 'Team Lead', target: 'Task 1.2', value: 3 },
-    { source: 'Project B', target: 'Developer X', value: 1 },
-    { source: 'Developer X', target: 'Task 2.1', value: 5 },
-    { source: 'Developer X', target: 'Bug Report', value: 1 },
-    { source: 'Bug Report', target: 'QA Tester', value: 1 },
-    { source: 'Project A', target: 'Documentation', value: 2 },
-    { source: 'Project B', target: 'Documentation', value: 2 },
-    { source: 'Task 1.1', target: 'Task 2.1', value: 1 },
-  ],
-};
+export type Node = { id: string; group: number };
+export type Link = { source: string | Node; target: string | Node; value: number };
+export type GraphData = { nodes: Node[]; links: Link[] };
 
 interface ForceGraphProps {
+  data: GraphData;
+  onNodeClick: (nodeId: string) => void;
+  selectedNodeId: string | null;
   repelStrength: number;
   linkDistance: number;
   centerForce: boolean;
 }
 
-export default function ForceGraph({ repelStrength, linkDistance, centerForce }: ForceGraphProps) {
+export default function ForceGraph({ data, onNodeClick, selectedNodeId, repelStrength, linkDistance, centerForce }: ForceGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const simulationRef = useRef<d3.Simulation<d3.SimulationNodeDatum, undefined>>();
 
@@ -53,69 +29,85 @@ export default function ForceGraph({ repelStrength, linkDistance, centerForce }:
     let width = container.clientWidth;
     let height = container.clientHeight;
 
-    svg.selectAll('*').remove();
-
     const color = d3.scaleOrdinal(d3.schemeCategory10);
-    const links = data.links.map(d => ({ ...d }));
-    const nodes = data.nodes.map(d => ({ ...d }));
 
-    const simulation = d3.forceSimulation(nodes as d3.SimulationNodeDatum[])
-      .force('link', d3.forceLink(links).id((d: any) => d.id))
+    const simulation = simulationRef.current || d3.forceSimulation()
+      .force('link', d3.forceLink().id((d: any) => d.id))
       .force('charge', d3.forceManyBody())
       .force('x', d3.forceX())
       .force('y', d3.forceY());
-      
+
     simulationRef.current = simulation;
-
-    const g = svg.append('g');
     
-    const link = g
-      .append('g')
-      .attr('stroke', '#999')
-      .attr('stroke-opacity', 0.6)
-      .selectAll('line')
-      .data(links)
-      .join('line')
-      .attr('stroke-width', d => Math.sqrt(d.value));
+    svg.selectAll('.links, .nodes, .labels').remove();
+    const linkG = svg.append('g').attr('class', 'links');
+    const nodeG = svg.append('g').attr('class', 'nodes');
+    const labelG = svg.append('g').attr('class', 'labels');
 
-    const node = g
-      .append('g')
-      .attr('stroke', 'hsl(var(--background))')
-      .attr('stroke-width', 1.5)
-      .selectAll('circle')
-      .data(nodes)
-      .join('circle')
-      .attr('r', 8)
-      .attr('fill', d => color(d.group.toString()))
-      .call(drag(simulation) as any);
+    function update() {
+        const links = data.links.map(d => ({ ...d }));
+        const nodes = data.nodes.map(d => ({ ...d }));
 
-    const labels = g.append("g")
-      .selectAll("text")
-      .data(nodes)
-      .join("text")
-      .attr('pointer-events', 'none')
-      .attr("fill", "hsl(var(--foreground))")
-      .attr("font-size", "10px")
-      .attr("dx", 12)
-      .attr("dy", ".35em")
-      .text(d => d.id);
+        simulation.nodes(nodes as d3.SimulationNodeDatum[]);
+        (simulation.force('link') as d3.ForceLink<any, any>).links(links);
+        
+        const link = linkG
+          .selectAll('line')
+          .data(links, (d:any) => `${(d.source as any).id}-${(d.target as any).id}`)
+          .join('line')
+          .attr('stroke', '#999')
+          .attr('stroke-opacity', 0.6)
+          .attr('stroke-width', d => Math.sqrt((d as any).value));
 
-    simulation.on('tick', () => {
-      link
-        .attr('x1', d => (d.source as any).x)
-        .attr('y1', d => (d.source as any).y)
-        .attr('x2', d => (d.target as any).x)
-        .attr('y2', d => (d.target as any).y);
+        const node = nodeG
+          .selectAll('circle')
+          .data(nodes, (d:any) => d.id)
+          .join('circle')
+          .attr('r', 8)
+          .attr('fill', d => color(d.group.toString()))
+          .attr('stroke', 'hsl(var(--background))')
+          .attr('stroke-width', 1.5)
+          .on('click', (event, d) => {
+            onNodeClick(d.id);
+            event.stopPropagation();
+          })
+          .call(drag(simulation) as any);
 
-      node
-        .attr('cx', d => (d as any).x)
-        .attr('cy', d => (d as any).y);
+        node.filter(d => d.id === selectedNodeId)
+            .attr('stroke', 'hsl(var(--primary))')
+            .attr('stroke-width', 3);
+        
+        const labels = labelG.selectAll("text")
+          .data(nodes, (d:any) => d.id)
+          .join("text")
+          .attr('pointer-events', 'none')
+          .attr("fill", "hsl(var(--foreground))")
+          .attr("font-size", "10px")
+          .attr("dx", 12)
+          .attr("dy", ".35em")
+          .text(d => d.id);
 
-      labels
-        .attr("x", d => (d as any).x)
-        .attr("y", d => (d as any).y);
-    });
+        simulation.on('tick', () => {
+          link
+            .attr('x1', d => (d.source as any).x)
+            .attr('y1', d => (d.source as any).y)
+            .attr('x2', d => (d.target as any).x)
+            .attr('y2', d => (d.target as any).y);
 
+          node
+            .attr('cx', d => (d as any).x)
+            .attr('cy', d => (d as any).y);
+
+          labels
+            .attr("x", d => (d as any).x)
+            .attr("y", d => (d as any).y);
+        });
+
+        simulation.alpha(0.3).restart();
+    }
+    
+    update();
+    
     function drag(simulation: d3.Simulation<d3.SimulationNodeDatum, undefined>) {
       function dragstarted(event: d3.D3DragEvent<any, any, any>, d: any) {
         if (!event.active) simulation.alphaTarget(0.3).restart();
@@ -133,11 +125,13 @@ export default function ForceGraph({ repelStrength, linkDistance, centerForce }:
       }
       return d3.drag().on('start', dragstarted).on('drag', dragged).on('end', dragended);
     }
-
+    
     const zoom = d3.zoom<SVGSVGElement, unknown>().on('zoom', (event) => {
-        g.attr('transform', event.transform);
+        d3.selectAll('.nodes, .links, .labels').attr('transform', event.transform);
     });
-    svg.call(zoom);
+    
+    svg.call(zoom as any)
+       .on('click', () => onNodeClick(null as any));;
 
     const resizeObserver = new ResizeObserver(entries => {
       for (let entry of entries) {
@@ -160,7 +154,7 @@ export default function ForceGraph({ repelStrength, linkDistance, centerForce }:
       simulation.stop();
       resizeObserver.disconnect();
     };
-  }, []);
+  }, [data, onNodeClick]);
 
   useEffect(() => {
     if (simulationRef.current) {
@@ -181,7 +175,14 @@ export default function ForceGraph({ repelStrength, linkDistance, centerForce }:
       simulation.alpha(0.3).restart();
     }
   }, [repelStrength, linkDistance, centerForce]);
-
+  
+  useEffect(() => {
+    const node = d3.select(svgRef.current).selectAll('circle');
+    node.attr('stroke', 'hsl(var(--background))').attr('stroke-width', 1.5);
+    node.filter((d: any) => d.id === selectedNodeId)
+        .attr('stroke', 'hsl(var(--primary))')
+        .attr('stroke-width', 3);
+  }, [selectedNodeId]);
 
   return <svg ref={svgRef} width="100%" height="100%"></svg>;
 }
