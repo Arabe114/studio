@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,8 +14,13 @@ import {
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, addDoc, Timestamp } from 'firebase/firestore';
+import { format, isSameDay } from 'date-fns';
+
 
 type Event = {
+  id: string;
   date: Date;
   title: string;
   type: 'work' | 'personal' | 'other';
@@ -26,23 +31,39 @@ export default function CalendarScheduler() {
   const [events, setEvents] = useState<Event[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleAddEvent = (e: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "events"), (snapshot) => {
+        const newEvents = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                title: data.title,
+                type: data.type,
+                date: (data.date as Timestamp).toDate(),
+            } as Event;
+        });
+        setEvents(newEvents);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleAddEvent = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const title = formData.get('title') as string;
     const type = formData.get('type') as 'work' | 'personal' | 'other';
 
     if (date && title) {
-      setEvents([...events, { date, title, type }]);
-      setIsModalOpen(false);
+        await addDoc(collection(db, 'events'), {
+            title,
+            type,
+            date: Timestamp.fromDate(date)
+        });
+        setIsModalOpen(false);
     }
   };
 
-  const dayEvents = date ? events.filter(event => 
-    event.date.getDate() === date.getDate() &&
-    event.date.getMonth() === date.getMonth() &&
-    event.date.getFullYear() === date.getFullYear()
-  ) : [];
+  const dayEvents = date ? events.filter(event => isSameDay(event.date, date)) : [];
 
   return (
     <div>
@@ -55,19 +76,21 @@ export default function CalendarScheduler() {
               selected={date}
               onSelect={setDate}
               className="w-full"
+              modifiers={{ hasEvent: events.map(e => e.date) }}
+              modifiersClassNames={{ hasEvent: 'bg-primary/20 rounded-full' }}
             />
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle>
-              Events for {date ? date.toLocaleDateString() : '...'}
+              Events for {date ? format(date, 'PPP') : '...'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {dayEvents.length > 0 ? (
-              dayEvents.map((event, i) => (
-                <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-background">
+              dayEvents.map((event) => (
+                <div key={event.id} className="flex items-center justify-between p-2 rounded-lg bg-background">
                   <span className="font-medium">{event.title}</span>
                   <Badge
                     className={
@@ -87,11 +110,11 @@ export default function CalendarScheduler() {
             )}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
               <DialogTrigger asChild>
-                <Button className="w-full mt-4">Add Event</Button>
+                <Button className="w-full mt-4" disabled={!date}>Add Event</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Add Event for {date?.toLocaleDateString()}</DialogTitle>
+                  <DialogTitle>Add Event for {date ? format(date, 'PPP') : ''}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleAddEvent} className="space-y-4">
                   <div>

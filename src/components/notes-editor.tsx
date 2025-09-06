@@ -1,16 +1,60 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bold, Italic, Upload } from "lucide-react";
+import { db } from '@/lib/firebase';
+import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore"; 
+
+const NOTE_ID = "main-note"; // We'll use a single document for simplicity
 
 export default function NotesEditor() {
   const [noteContent, setNoteContent] = useState("");
-  const [noteTitle, setNoteTitle] = useState("Untitled Note");
+  const [noteTitle, setNoteTitle] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Load initial note and subscribe to changes
+  useEffect(() => {
+    const noteDocRef = doc(db, 'notes', NOTE_ID);
+    
+    const unsubscribe = onSnapshot(noteDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setNoteTitle(data.title || 'Untitled Note');
+        setNoteContent(data.content || '');
+      } else {
+        // Create initial document if it doesn't exist
+        setDoc(noteDocRef, { title: 'Untitled Note', content: '' });
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+  
+  const saveNote = (title: string, content: string) => {
+     if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    debounceTimer.current = setTimeout(async () => {
+        const noteDocRef = doc(db, 'notes', NOTE_ID);
+        await setDoc(noteDocRef, { title, content }, { merge: true });
+    }, 500); // Debounce saves by 500ms
+  }
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNoteTitle(e.target.value);
+    saveNote(e.target.value, noteContent);
+  }
+
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNoteContent(e.target.value);
+    saveNote(noteTitle, e.target.value);
+  }
+
 
   const applyFormat = (format: 'bold' | 'italic') => {
     if (!textareaRef.current) return;
@@ -33,8 +77,8 @@ export default function NotesEditor() {
 
     const newContent = noteContent.substring(0, start) + formattedText + noteContent.substring(end);
     setNoteContent(newContent);
+    saveNote(noteTitle, newContent);
 
-    // After updating, focus and move cursor
     setTimeout(() => {
         textarea.focus();
         textarea.setSelectionRange(start + 2, end + 2);
@@ -49,11 +93,13 @@ export default function NotesEditor() {
     }
     const reader = new FileReader();
     reader.onload = (e) => {
-        const text = e.target?.result;
-        setNoteContent(text as string);
+        const text = e.target?.result as string;
+        const newTitle = file.name.replace('.txt', '');
+        setNoteContent(text);
+        setNoteTitle(newTitle);
+        saveNote(newTitle, text);
     };
     reader.readAsText(file);
-    setNoteTitle(file.name.replace('.txt', ''));
   };
 
   return (
@@ -75,7 +121,7 @@ export default function NotesEditor() {
 
       <Input 
         value={noteTitle}
-        onChange={(e) => setNoteTitle(e.target.value)}
+        onChange={handleTitleChange}
         className="text-2xl font-semibold border-0 shadow-none focus-visible:ring-0 mb-4 p-0 shrink-0"
         placeholder="Note Title"
       />
@@ -93,7 +139,7 @@ export default function NotesEditor() {
         <Textarea
           ref={textareaRef}
           value={noteContent}
-          onChange={(e) => setNoteContent(e.target.value)}
+          onChange={handleContentChange}
           placeholder="Start writing your notes here..."
           className="w-full h-full flex-grow resize-none text-base"
         />

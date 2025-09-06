@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 
 type TransactionType = 'income' | 'expense';
 
@@ -24,19 +26,32 @@ export default function BudgetTracker() {
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<TransactionType>('expense');
 
-  const handleAddTransaction = (e: React.FormEvent) => {
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "transactions"), (snapshot) => {
+        const newTransactions = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                date: data.createdAt?.toDate().toLocaleDateString() || new Date().toLocaleDateString(),
+            } as Transaction
+        }).sort((a,b) => (b as any).createdAt?.toMillis() - (a as any).createdAt?.toMillis());
+        setTransactions(newTransactions);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleAddTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!description || !amount) return;
 
-    const newTransaction: Transaction = {
-      id: new Date().toISOString(),
-      description,
-      amount: parseFloat(amount),
-      type,
-      date: new Date().toLocaleDateString(),
-    };
+    await addDoc(collection(db, 'transactions'), {
+        description,
+        amount: parseFloat(amount),
+        type,
+        createdAt: serverTimestamp(),
+    });
 
-    setTransactions([...transactions, newTransaction]);
     setDescription('');
     setAmount('');
   };
@@ -82,7 +97,7 @@ export default function BudgetTracker() {
                   required
                 />
               </div>
-              <RadioGroup defaultValue="expense" onValueChange={(value: TransactionType) => setType(value)} className="flex gap-4">
+              <RadioGroup value={type} onValueChange={(value: TransactionType) => setType(value)} className="flex gap-4">
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="income" id="income" />
                   <Label htmlFor="income">Income</Label>
