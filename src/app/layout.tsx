@@ -5,8 +5,8 @@ import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'SynergyHub',
-  description: 'All-in-One Productivity Hub',
+  title: 'ELN',
+  description: 'Electronic Lab Notebook',
 };
 
 export default function RootLayout({

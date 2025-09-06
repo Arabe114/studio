@@ -111,11 +111,11 @@ export default function AppShell() {
             isSidebarExpanded ? 'w-full ' : 'w-10 justify-center'
           )}
         >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-neon-primary">
-            <Hexagon className="h-6 w-6" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-neon-primary">
+            ELN
           </div>
            {isSidebarExpanded && (
-             <span className="ml-3 text-lg font-semibold">SynergyHub</span>
+             <span className="ml-3 text-lg font-semibold">ELN</span>
            )}
         </div>
 
