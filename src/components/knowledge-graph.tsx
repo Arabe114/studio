@@ -1,18 +1,18 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Edit, FilePlus, FolderPlus, Link as LinkIcon, Link2Off, Trash2, ChevronRight, Folder, File, Check } from 'lucide-react';
+import { Edit, FilePlus, FolderPlus, Link as LinkIcon, Link2Off, Trash2, ChevronRight, Folder, File, Check, Image as ImageIcon } from 'lucide-react';
 import ForceGraph from './force-graph';
 import type { Node as GraphNode, Link, GraphData } from './force-graph';
 import { Button } from './ui/button';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, doc, deleteDoc, setDoc, writeBatch, query, where, getDocs, WriteBatch } from 'firebase/firestore';
+import { collection, onSnapshot, doc, deleteDoc, setDoc, writeBatch, query, getDocs, updateDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -29,6 +29,7 @@ import {
 type Node = GraphNode & {
     type: 'file' | 'folder';
     parentId: string | null;
+    imageUrl?: string;
 };
 
 const initialGraphData: GraphData = {
@@ -62,9 +63,9 @@ function FileExplorer({ nodes, selectedNodeId, onSelectNode, onRename, onDelete,
         setNodeToDelete(node);
     }
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         if(nodeToDelete) {
-            onDelete(nodeToDelete.id);
+            await onDelete(nodeToDelete.id);
             setNodeToDelete(null);
         }
     }
@@ -116,7 +117,11 @@ function FileExplorer({ nodes, selectedNodeId, onSelectNode, onRename, onDelete,
                        {isFolder ? (
                            <Folder className={cn("h-4 w-4 text-primary transition-colors group-hover:text-accent-foreground", (isSelected || editingNodeId === node.id) && "text-accent-foreground")} />
                         ) : (
-                           <File className={cn("h-4 w-4 text-primary transition-colors group-hover:text-accent-foreground", isSelected && "text-accent-foreground")} />
+                            node.imageUrl ? (
+                                <ImageIcon className={cn("h-4 w-4 text-primary transition-colors group-hover:text-accent-foreground", isSelected && "text-accent-foreground")} />
+                            ) : (
+                                <File className={cn("h-4 w-4 text-primary transition-colors group-hover:text-accent-foreground", isSelected && "text-accent-foreground")} />
+                            )
                         )
                        }
                        
@@ -199,6 +204,8 @@ export default function KnowledgeGraph() {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [linkingNodes, setLinkingNodes] = useState<Node[]>([]);
   const [editingNodeName, setEditingNodeName] = useState('');
+  
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const unsubNodes = onSnapshot(collection(db, 'kg-nodes'), (snapshot) => {
@@ -267,7 +274,7 @@ export default function KnowledgeGraph() {
 
   const handleAddNode = useCallback(async (isFolder = false) => {
     const type = isFolder ? "folder" : "file";
-    const baseName = isFolder ? "New Folder" : "New Node";
+    const baseName = isFolder ? "New Folder" : "New File";
     let newNodeId = `${baseName}`;
     let counter = 1;
     while(allNodes.some(n => n.id === newNodeId)) {
@@ -304,7 +311,7 @@ export default function KnowledgeGraph() {
         createLink(selectedNode.id, newNodeId);
     }
     
-    if (selectedFolderId && !isFolder) {
+    if (selectedFolderId) {
        createLink(selectedFolderId, newNodeId);
     }
 
@@ -312,18 +319,56 @@ export default function KnowledgeGraph() {
 
   }, [selectedNode, allNodes, allLinks, selectedFolderId]);
   
+  const handleAddImageNode = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !file.type.startsWith('image/')) {
+        alert("Please select an image file.");
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const imageUrl = e.target?.result as string;
+        let newNodeId = file.name;
+        let counter = 1;
+        while(allNodes.some(n => n.id === newNodeId)) {
+            const nameParts = file.name.split('.');
+            const ext = nameParts.pop();
+            newNodeId = `${nameParts.join('.')}(${counter++}).${ext}`;
+        }
+        
+        const newNodeData: Omit<Node, 'id'> = { 
+            group: 7, // A new group for images
+            type: 'file',
+            parentId: selectedFolderId,
+            imageUrl: imageUrl
+        };
+        
+        await setDoc(doc(db, "kg-nodes", newNodeId), newNodeData);
+        // Reset file input
+        if(imageInputRef.current) imageInputRef.current.value = "";
+    };
+    reader.readAsDataURL(file);
+  }, [allNodes, selectedFolderId]);
+
     const deleteNodeAndChildren = useCallback(async (nodeId: string) => {
         const batch = writeBatch(db);
         const nodesToDelete = new Set<string>();
-        
-        function findChildrenRecursive(id: string) {
+        const linksToDelete = new Set<string>();
+
+        const findChildrenRecursive = (id: string) => {
             nodesToDelete.add(id);
             const children = allNodes.filter(n => n.parentId === id);
             children.forEach(child => findChildrenRecursive(child.id));
+        };
+
+        const node = allNodes.find(n => n.id === nodeId);
+        if (node?.type === 'folder') {
+            findChildrenRecursive(nodeId);
+        } else {
+            nodesToDelete.add(nodeId);
         }
-
-        findChildrenRecursive(nodeId);
-
+        
         nodesToDelete.forEach(id => {
             const nodeRef = doc(db, 'kg-nodes', id);
             batch.delete(nodeRef);
@@ -349,7 +394,7 @@ export default function KnowledgeGraph() {
         if(selectedFolderId && nodesToDelete.has(selectedFolderId)) {
             setSelectedFolderId(null);
         }
-    }, [allNodes, allLinks, selectedNode, selectedFolderId]);
+    }, [allNodes, selectedNode, selectedFolderId]);
 
 
   const handleDeleteSelected = async () => {
@@ -441,11 +486,8 @@ export default function KnowledgeGraph() {
 
         // Create new node with new ID and same data
         const newNodeRef = doc(db, 'kg-nodes', newNodeName);
-        batch.set(newNodeRef, { 
-            group: oldNodeData.group,
-            type: oldNodeData.type,
-            parentId: oldNodeData.parentId
-        });
+        const { id, ...restOfOldData } = oldNodeData;
+        batch.set(newNodeRef, { ...restOfOldData });
 
         // Re-create links with new node name
         const q = query(collection(db, 'kg-links'));
@@ -482,7 +524,8 @@ export default function KnowledgeGraph() {
         await batch.commit();
 
         if (selectedNode?.id === oldNodeId) {
-             setSelectedNode(prev => prev ? { ...prev, id: newNodeName } : null);
+             const updatedNode = allNodes.find(n => n.id === newNodeName) || null;
+             setSelectedNode(updatedNode as Node);
         }
         if (selectedFolderId === oldNodeId) {
             setSelectedFolderId(newNodeName);
@@ -558,6 +601,14 @@ export default function KnowledgeGraph() {
             <div className="grid grid-cols-2 gap-2">
                <Button variant="outline" size="sm" onClick={() => handleAddNode(false)}><FilePlus /> New File</Button>
                <Button variant="outline" size="sm" onClick={() => handleAddNode(true)}><FolderPlus /> New Folder</Button>
+               <Button variant="outline" size="sm" onClick={() => imageInputRef.current?.click()}><ImageIcon /> Add Image</Button>
+               <input
+                    type="file"
+                    ref={imageInputRef}
+                    onChange={handleAddImageNode}
+                    accept="image/*"
+                    className="hidden"
+                />
                <Button variant="outline" size="sm" onClick={handleCreateLink} disabled={linkingNodes.length !== 2}><LinkIcon /> Link Nodes</Button>
                <Button variant="outline" size="sm" onClick={handleUnlinkSelected} disabled={!selectedNode || selectedNode.type === 'folder'}><Link2Off /> Unlink Node</Button>
                <Button variant="destructive" size="sm" onClick={handleDeleteSelected} disabled={!selectedNode}><Trash2 /> Delete</Button>
@@ -597,7 +648,3 @@ export default function KnowledgeGraph() {
     </div>
   );
 }
-
-
-
-    

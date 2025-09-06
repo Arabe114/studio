@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useEffect, useRef, useMemo } from 'react';
 import * as d3 from 'd3';
 
-export type Node = { id: string; group: number; fx?: number | null; fy?: number | null; x?: number; y?: number };
+export type Node = { id: string; group: number; fx?: number | null; fy?: number | null; x?: number; y?: number; imageUrl?: string };
 export type Link = { source: string | Node; target: string | Node; value: number };
 export type GraphData = { nodes: Node[]; links: Link[] };
 
@@ -16,6 +17,9 @@ interface ForceGraphProps {
   linkDistance: number;
   centerForce: boolean;
 }
+
+const NODE_RADIUS = 12;
+const IMAGE_NODE_SIZE = 24;
 
 export default function ForceGraph({
   data,
@@ -69,24 +73,66 @@ export default function ForceGraph({
       .attr('stroke-opacity', 0.6)
       .attr('stroke-width', d => Math.sqrt(d.value));
 
-    const node = nodeG
-      .selectAll('circle')
+    const nodeGroups = nodeG
+      .selectAll('g')
       .data(nodes, d => d.id)
-      .join('circle')
-      .attr('r', 8)
-      .attr('fill', d => color(d.group.toString()))
+      .join('g')
       .on('click', (event, d) => {
         event.stopPropagation();
         onNodeClick(d);
       })
       .call(drag(simulation));
+      
+    // Create a circular clip path for images
+    svg.append('defs')
+      .selectAll('clipPath')
+      .data(nodes.filter(n => n.imageUrl))
+      .join('clipPath')
+      .attr('id', d => `clip-${d.id.replace(/[^a-zA-Z0-9]/g, '-')}`)
+      .append('circle')
+      .attr('r', IMAGE_NODE_SIZE / 2);
+
+    // Regular circle nodes
+    nodeGroups.filter(d => !d.imageUrl)
+      .append('circle')
+      .attr('r', NODE_RADIUS)
+      .attr('fill', d => color(d.group.toString()));
+
+    // Image nodes
+    const imageNodes = nodeGroups.filter(d => !!d.imageUrl);
+    
+    imageNodes.append('circle') // Background/border circle
+        .attr('r', IMAGE_NODE_SIZE / 2 + 2)
+        .attr('fill', 'hsl(var(--card))');
+
+    imageNodes.append('image')
+      .attr('xlink:href', d => d.imageUrl!)
+      .attr('width', IMAGE_NODE_SIZE)
+      .attr('height', IMAGE_NODE_SIZE)
+      .attr('x', -IMAGE_NODE_SIZE / 2)
+      .attr('y', -IMAGE_NODE_SIZE / 2)
+      .attr('clip-path', d => `url(#clip-${d.id.replace(/[^a-zA-Z0-9]/g, '-')})`);
+      
+    // Selection/Highlight rectangle for all nodes
+    nodeGroups.append('rect')
+        .attr('class', 'selection-highlight')
+        .attr('width', IMAGE_NODE_SIZE + 4)
+        .attr('height', IMAGE_NODE_SIZE + 4)
+        .attr('x', -IMAGE_NODE_SIZE/2 - 2)
+        .attr('y', -IMAGE_NODE_SIZE/2 - 2)
+        .attr('rx', 8)
+        .attr('ry', 8)
+        .attr('fill', 'none')
+        .attr('stroke-width', 3)
+        .attr('stroke', 'transparent');
+
 
     const labels = labelG
       .selectAll('text')
       .data(nodes, d => d.id)
       .join('text')
       .attr('pointer-events', 'none')
-      .attr('dx', 12)
+      .attr('dx', d => d.imageUrl ? (IMAGE_NODE_SIZE / 2 + 5) : (NODE_RADIUS + 5))
       .attr('dy', '.35em')
       .attr('fill', 'hsl(var(--foreground))')
       .text(d => d.id);
@@ -105,10 +151,9 @@ export default function ForceGraph({
         .attr('x2', d => (d.target as Node).x!)
         .attr('y2', d => (d.target as Node).y!);
 
-      node
-        .attr('cx', d => d.x!)
-        .attr('cy', d => d.y!);
-
+      nodeGroups
+        .attr('transform', d => `translate(${d.x}, ${d.y})`);
+        
       labels
         .attr('x', d => d.x!)
         .attr('y', d => d.y!);
@@ -140,27 +185,26 @@ export default function ForceGraph({
   useEffect(() => {
     if (!svgRef.current) return;
     const svg = d3.select(svgRef.current);
-    const nodesSelection = svg.selectAll<SVGCircleElement, Node>('.nodes circle');
+    const nodesSelection = svg.selectAll<SVGGElement, Node>('.nodes g');
+    const highlightRects = nodesSelection.select('.selection-highlight');
 
-    // Reset all nodes
-    nodesSelection
-       .attr('stroke', 'hsl(var(--card))')
-       .attr('stroke-width', 1.5);
+    // Reset all highlights
+    highlightRects.attr('stroke', 'transparent');
     
     // Highlight linking nodes
     if (linkingNodeIds.length > 0) {
         nodesSelection
             .filter(d => linkingNodeIds.includes(d.id))
-            .attr('stroke', 'hsl(var(--accent))')
-            .attr('stroke-width', 3);
+            .select('.selection-highlight')
+            .attr('stroke', 'hsl(var(--accent))');
     }
     
     // Highlight primary selected node (overrides linking highlight if it's the first linking node)
     if (selectedNodeId) {
       nodesSelection
         .filter(d => d.id === selectedNodeId)
-        .attr('stroke', 'hsl(var(--primary))')
-        .attr('stroke-width', 3);
+        .select('.selection-highlight')
+        .attr('stroke', 'hsl(var(--primary))');
     }
   }, [selectedNodeId, linkingNodeIds]);
 
@@ -180,7 +224,7 @@ export default function ForceGraph({
       d.fx = null;
       d.fy = null;
     }
-    return d3.drag<SVGCircleElement, Node>()
+    return d3.drag<SVGGElement, Node>()
       .on('start', dragstarted)
       .on('drag', dragged)
       .on('end', dragended);
