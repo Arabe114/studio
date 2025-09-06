@@ -107,7 +107,7 @@ export default function AppShell() {
            )}
         </div>
 
-        <div className="flex flex-col gap-2 flex-grow">
+        <div className="flex flex-grow flex-col gap-2">
           {navItems.map((item) => (
             <button
               key={item.id}
