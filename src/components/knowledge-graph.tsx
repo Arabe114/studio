@@ -25,7 +25,7 @@ const initialGraphData: GraphData = {
     links: []
 };
 
-function FileExplorer({ nodes, selectedFolderId, onSelectFolder, onRename, onDelete, onAdd }) {
+function FileExplorer({ nodes, selectedFolderId, onSelectFolder, onRename, onDelete }) {
     const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
     const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
     const [editingFolderName, setEditingFolderName] = useState('');
@@ -92,7 +92,7 @@ function FileExplorer({ nodes, selectedFolderId, onSelectFolder, onRename, onDel
                        )}
 
                        {isFolder && editingFolderId !== node.id && (
-                           <div className="hidden group-hover:flex items-center ml-auto">
+                           <div className="flex items-center ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => handleRenameStart(e, node)} title="Rename Folder">
                                    <Edit className="h-3 w-3" />
                                </Button>
@@ -228,7 +228,7 @@ export default function KnowledgeGraph() {
     }
   }, [selectedNode, allNodes, selectedFolderId]);
   
-  const deleteNodeAndChildren = async (nodeId: string, batch: any) => {
+    const deleteNodeAndChildren = useCallback(async (nodeId: string, batch: any) => {
         const nodeToDelete = allNodes.find(n => n.id === nodeId);
         if (!nodeToDelete) return;
 
@@ -237,19 +237,15 @@ export default function KnowledgeGraph() {
         batch.delete(nodeRef);
 
         // Delete associated links
-        const linksToDelete = allLinks.filter(link => {
-            const sourceId = (link.source as any).id || link.source;
-            const targetId = (link.target as any).id || link.target;
-            return sourceId === nodeId || targetId === nodeId;
-        });
-        for (const link of linksToDelete) {
-            const sourceId = (link.source as any).id || link.source;
-            const targetId = (link.target as any).id || link.target;
-            const linkId = `${sourceId}-${targetId}`;
-            const reverseLinkId = `${targetId}-${sourceId}`;
-            batch.delete(doc(db, "kg-links", linkId));
-            batch.delete(doc(db, "kg-links", reverseLinkId));
-        }
+        const linksQuerySnapshot = await getDocs(
+            query(collection(db, 'kg-links'), where('source', '==', nodeId))
+        );
+        linksQuerySnapshot.forEach(linkDoc => batch.delete(linkDoc.ref));
+
+        const linksQuerySnapshot2 = await getDocs(
+            query(collection(db, 'kg-links'), where('target', '==', nodeId))
+        );
+        linksQuerySnapshot2.forEach(linkDoc => batch.delete(linkDoc.ref));
 
         // If it's a folder, recursively delete children
         if (nodeToDelete.type === 'folder') {
@@ -258,7 +254,8 @@ export default function KnowledgeGraph() {
                 await deleteNodeAndChildren(child.id, batch);
             }
         }
-    }
+    }, [allNodes]);
+
 
   const handleDeleteSelected = async () => {
     if (!selectedNode) return;
@@ -270,19 +267,19 @@ export default function KnowledgeGraph() {
     setLinkingNodes([]);
   };
 
-  const handleDeleteFolder = async (folderId: string) => {
-    const batch = writeBatch(db);
-    await deleteNodeAndChildren(folderId, batch);
-    await batch.commit();
+    const handleDeleteFolder = useCallback(async (folderId: string) => {
+        const batch = writeBatch(db);
+        await deleteNodeAndChildren(folderId, batch);
+        await batch.commit();
 
-    if (selectedFolderId === folderId) {
-        setSelectedFolderId(null);
-    }
-    if(selectedNode?.id === folderId) {
-        setSelectedNode(null);
-        setLinkingNodes([]);
-    }
-  }
+        if (selectedFolderId === folderId) {
+            setSelectedFolderId(null);
+        }
+        if(selectedNode?.id === folderId) {
+            setSelectedNode(null);
+            setLinkingNodes([]);
+        }
+    }, [deleteNodeAndChildren, selectedFolderId, selectedNode]);
   
   const handleCreateLink = async () => {
     if (linkingNodes.length !== 2) return;
@@ -413,7 +410,6 @@ export default function KnowledgeGraph() {
                 onSelectFolder={setSelectedFolderId}
                 onRename={handleUpdateNodeName}
                 onDelete={handleDeleteFolder}
-                onAdd={() => {}}
             />
         </CardContent>
       </Card>
@@ -506,3 +502,5 @@ export default function KnowledgeGraph() {
     </div>
   );
 }
+
+    
