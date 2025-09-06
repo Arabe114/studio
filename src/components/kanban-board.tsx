@@ -2,13 +2,13 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import ForceGraph from './force-graph';
 import type { Node as GraphNode, Link as GraphLink } from './force-graph';
-import { Plus, Link as LinkIcon, Trash2, LocateFixed } from 'lucide-react';
+import { Plus, Link as LinkIcon, Trash2, LocateFixed, LayoutGrid, Workflow } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { CheckCircle, Circle, RefreshCw } from 'lucide-react';
 
 type TaskStatus = 'todo' | 'in-progress' | 'done';
+type ViewMode = 'flow' | 'board';
 
 type Task = {
   id: string;
@@ -56,6 +57,11 @@ const statusToColor: Record<TaskStatus, string> = {
     'in-progress': 'hsl(var(--primary))',
     'done': 'hsl(var(--ring))',
 }
+const statusToTitle: Record<TaskStatus, string> = {
+    'todo': 'To Do',
+    'in-progress': 'In Progress',
+    'done': 'Done',
+}
 
 
 export default function KanbanBoard() {
@@ -67,6 +73,7 @@ export default function KanbanBoard() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [sheetTask, setSheetTask] = useState<Partial<Task> | null>(null);
   const [centerView, setCenterView] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('flow');
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'tasks'), (snapshot) => {
@@ -84,8 +91,8 @@ export default function KanbanBoard() {
       fy: task.y,
       html: `
         <div class="p-3 rounded-lg border-2" style="border-color: ${statusToColor[task.status]}; background-color: hsl(var(--card)); color: hsl(var(--card-foreground)); width: 180px; height: 80px;">
-          <div class="font-bold truncate text-sm">${task.title}</div>
-          <div class="text-xs text-muted-foreground truncate">${task.description}</div>
+          <div class="font-bold truncate text-sm flex items-center gap-2">${statusToIcon[task.status]} ${task.title}</div>
+          <div class="text-xs text-muted-foreground truncate mt-1">${task.description}</div>
         </div>
       `
     }));
@@ -142,6 +149,12 @@ export default function KanbanBoard() {
       setIsSheetOpen(true);
     }
   }, [isLinkingMode, firstLinkNode, tasks]);
+  
+  const handleCardClick = (task: Task) => {
+      setSelectedTask(task);
+      setSheetTask(task);
+      setIsSheetOpen(true);
+  }
 
   const handleNodeDrag = async (nodeId: string, newPosition: { x: number, y: number }) => {
       const taskRef = doc(db, 'tasks', nodeId);
@@ -200,26 +213,8 @@ export default function KanbanBoard() {
     setSelectedTask(null);
     setSheetTask(null);
   }
-
-  return (
-    <div className="h-full min-h-[85vh] flex flex-col">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-3xl font-bold">Task Flow</h1>
-        <div className="flex gap-2">
-            <Button onClick={handleCreateNewTask}><Plus /> Add Task</Button>
-            <Button 
-                variant={isLinkingMode ? "secondary" : "outline"} 
-                onClick={() => {
-                    setIsLinkingMode(!isLinkingMode);
-                    setFirstLinkNode(null);
-                    setSelectedTask(null);
-                }}
-            >
-                <LinkIcon /> {isLinkingMode ? (firstLinkNode ? 'Select Target Task' : 'Select Source Task') : 'Link Tasks'}
-            </Button>
-            <Button variant="outline" onClick={() => setCenterView(true)}><LocateFixed /> Center View</Button>
-        </div>
-      </div>
+  
+  const renderFlowView = () => (
       <Card className="flex-grow relative">
         <ForceGraph 
             data={graphData}
@@ -234,6 +229,63 @@ export default function KanbanBoard() {
             centerForce={false}
         />
       </Card>
+  );
+
+  const renderBoardView = () => {
+      const columns: TaskStatus[] = ['todo', 'in-progress', 'done'];
+      return (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-grow">
+              {columns.map(status => (
+                  <div key={status} className="bg-card/50 rounded-lg p-4 flex flex-col">
+                      <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                        {statusToIcon[status]}
+                        {statusToTitle[status]}
+                        <span className="text-sm font-normal text-muted-foreground ml-2">
+                            ({tasks.filter(t => t.status === status).length})
+                        </span>
+                      </h2>
+                      <div className="space-y-4 overflow-y-auto">
+                          {tasks.filter(t => t.status === status).map(task => (
+                              <Card key={task.id} className="p-4 cursor-pointer" onClick={() => handleCardClick(task)}>
+                                  <CardTitle className="text-base">{task.title}</CardTitle>
+                                  <p className="text-sm text-muted-foreground mt-1 truncate">{task.description}</p>
+                              </Card>
+                          ))}
+                      </div>
+                  </div>
+              ))}
+          </div>
+      );
+  };
+
+  return (
+    <div className="h-full min-h-[85vh] flex flex-col">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-3xl font-bold">Task {viewMode === 'flow' ? 'Flow' : 'Board'}</h1>
+        <div className="flex gap-2">
+            <Button onClick={handleCreateNewTask}><Plus /> Add Task</Button>
+            {viewMode === 'flow' && (
+                <>
+                    <Button 
+                        variant={isLinkingMode ? "secondary" : "outline"} 
+                        onClick={() => {
+                            setIsLinkingMode(!isLinkingMode);
+                            setFirstLinkNode(null);
+                            setSelectedTask(null);
+                        }}
+                    >
+                        <LinkIcon /> {isLinkingMode ? (firstLinkNode ? 'Select Target' : 'Select Source') : 'Link Tasks'}
+                    </Button>
+                    <Button variant="outline" onClick={() => setCenterView(true)}><LocateFixed /> Center View</Button>
+                </>
+            )}
+            <Button variant="outline" onClick={() => setViewMode(viewMode === 'flow' ? 'board' : 'flow')}>
+                {viewMode === 'flow' ? <><LayoutGrid/> Board View</> : <><Workflow/> Flow View</>}
+            </Button>
+        </div>
+      </div>
+      
+      {viewMode === 'flow' ? renderFlowView() : renderBoardView()}
       
       <Sheet open={isSheetOpen} onOpenChange={(isOpen) => {
         setIsSheetOpen(isOpen);
@@ -286,3 +338,5 @@ export default function KanbanBoard() {
     </div>
   );
 }
+
+    
