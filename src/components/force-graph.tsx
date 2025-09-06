@@ -27,7 +27,7 @@ export default function ForceGraph({
 }: ForceGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const simulationRef = useRef<d3.Simulation<Node, Link>>();
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
   // Memoize data to prevent unnecessary re-renders
   const { nodes, links } = useMemo(() => {
@@ -178,9 +178,9 @@ export default function ForceGraph({
   useEffect(() => {
     if (!svgRef.current) return;
     const svg = d3.select(svgRef.current);
-    const labelColor = theme === 'dark' ? 'hsl(var(--foreground))' : 'hsl(var(--foreground))';
+    const labelColor = resolvedTheme === 'dark' ? '#ffffff' : '#000000';
     svg.selectAll('.labels text').attr('fill', labelColor);
-  }, [theme]);
+  }, [resolvedTheme]);
 
   function drag(simulation: d3.Simulation<Node, Link>) {
     function dragstarted(event: d3.D3DragEvent<any, any, any>, d: Node) {
