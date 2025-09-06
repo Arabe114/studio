@@ -5,21 +5,53 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bold, Italic, Upload } from "lucide-react";
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 export default function NotesEditor() {
   const [noteContent, setNoteContent] = useState("");
   const [noteTitle, setNoteTitle] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const noteRef = doc(db, 'notes', 'main-note');
+    const unsubscribe = onSnapshot(noteRef, (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        setNoteTitle(data.title || '');
+        setNoteContent(data.content || '');
+      } else {
+        console.log("No such document!");
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const saveData = (title: string, content: string) => {
+      const noteRef = doc(db, 'notes', 'main-note');
+      setDoc(noteRef, { title, content }, { merge: true });
+  }
+
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNoteTitle(e.target.value);
+    const newTitle = e.target.value;
+    setNoteTitle(newTitle);
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    debounceTimeout.current = setTimeout(() => {
+        saveData(newTitle, noteContent);
+    }, 500);
   }
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setNoteContent(e.target.value);
+    const newContent = e.target.value;
+    setNoteContent(newContent);
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    debounceTimeout.current = setTimeout(() => {
+        saveData(noteTitle, newContent);
+    }, 500);
   }
-
 
   const applyFormat = (format: 'bold' | 'italic') => {
     if (!textareaRef.current) return;
@@ -42,6 +74,7 @@ export default function NotesEditor() {
 
     const newContent = noteContent.substring(0, start) + formattedText + noteContent.substring(end);
     setNoteContent(newContent);
+    saveData(noteTitle, newContent);
 
     setTimeout(() => {
         textarea.focus();
@@ -61,6 +94,7 @@ export default function NotesEditor() {
         const newTitle = file.name.replace('.txt', '');
         setNoteContent(text);
         setNoteTitle(newTitle);
+        saveData(newTitle, text);
     };
     reader.readAsText(file);
   };

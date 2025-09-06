@@ -1,17 +1,20 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { ChevronRight, Folder, Star, Paperclip, FilePlus, FolderPlus, Trash2, Upload, FileCode, Link as LinkIcon, Edit } from 'lucide-react';
+import { Edit, FilePlus, FolderPlus, Link as LinkIcon, Trash2, Upload } from 'lucide-react';
 import ForceGraph from './force-graph';
-import type { Node, Link } from './force-graph';
+import type { Node, Link, GraphData } from './force-graph';
 import { Button } from './ui/button';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, addDoc, doc, deleteDoc, setDoc, writeBatch } from 'firebase/firestore';
 
-const initialGraphData = {
+
+const initialGraphData: GraphData = {
     nodes: [],
     links: []
 };
@@ -20,11 +23,29 @@ export default function KnowledgeGraph() {
   const [repelStrength, setRepelStrength] = useState(-500);
   const [linkDistance, setLinkDistance] = useState(50);
   const [centerForce, setCenterForce] = useState(true);
-  const [graphData, setGraphData] = useState<{ nodes: Node[], links: Link[] }>(initialGraphData);
+  const [graphData, setGraphData] = useState<GraphData>(initialGraphData);
   
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [linkingNodes, setLinkingNodes] = useState<Node[]>([]);
   const [editingNodeName, setEditingNodeName] = useState('');
+
+  useEffect(() => {
+    const unsubNodes = onSnapshot(collection(db, 'kg-nodes'), (snapshot) => {
+      const nodes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Node));
+      setGraphData(prev => ({ ...prev, nodes }));
+    });
+
+    const unsubLinks = onSnapshot(collection(db, 'kg-links'), (snapshot) => {
+      const links = snapshot.docs.map(doc => doc.data() as Link);
+      setGraphData(prev => ({ ...prev, links }));
+    });
+
+    return () => {
+      unsubNodes();
+      unsubLinks();
+    };
+  }, []);
+
 
   useEffect(() => {
     if (selectedNode) {
@@ -44,94 +65,129 @@ export default function KnowledgeGraph() {
     }
   };
 
-  const handleAddNode = (isFolder = false) => {
+  const handleAddNode = useCallback(async (isFolder = false) => {
     const baseName = isFolder ? "New Folder" : "New Node";
-    const newNode = { 
-        id: `${baseName} ${Date.now()}`,
+    const newNodeData = { 
         group: isFolder ? 6 : 5
     };
+    const newNodeId = `${baseName} ${Date.now()}`;
     
-    setGraphData(prev => {
-        const newNodes = [...prev.nodes, newNode];
-        let newLinks = [...prev.links];
-        if (selectedNode) {
-            newLinks.push({ source: selectedNode.id, target: newNode.id, value: 1 });
-        }
-        return { nodes: newNodes, links: newLinks };
-    });
-  };
+    await setDoc(doc(db, "kg-nodes", newNodeId), newNodeData);
+
+    if (selectedNode) {
+        const newLink = { source: selectedNode.id, target: newNodeId, value: 1 };
+        const linkId = `${selectedNode.id}-${newNodeId}`;
+        await setDoc(doc(db, "kg-links", linkId), newLink);
+    }
+  }, [selectedNode]);
   
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = async () => {
     if (!selectedNode) return;
-    setGraphData(prev => ({
-        nodes: prev.nodes.filter(n => n.id !== selectedNode.id),
-        links: prev.links.filter(l => (l.source as Node).id !== selectedNode.id && (l.target as Node).id !== selectedNode.id)
-    }));
+
+    const batch = writeBatch(db);
+    
+    // Delete the node
+    const nodeRef = doc(db, "kg-nodes", selectedNode.id);
+    batch.delete(nodeRef);
+    
+    // Delete associated links
+    graphData.links.forEach(link => {
+        if ((link.source as any).id === selectedNode.id || (link.target as any).id === selectedNode.id || link.source === selectedNode.id || link.target === selectedNode.id) {
+            const linkId = `${link.source.toString()}-${link.target.toString()}`;
+            const reverseLinkId = `${link.target.toString()}-${link.source.toString()}`;
+            
+            const linkRef = doc(db, "kg-links", linkId);
+            batch.delete(linkRef);
+            
+            const reverseLinkRef = doc(db, "kg-links", reverseLinkId);
+            batch.delete(reverseLinkRef);
+        }
+    });
+
+    await batch.commit();
+
     setSelectedNode(null);
+    setLinkingNodes([]);
   };
   
-  const handleCreateLink = () => {
+  const handleCreateLink = async () => {
     if (linkingNodes.length !== 2) return;
     const [source, target] = linkingNodes;
     
-    setGraphData(prev => {
-        const linkExists = prev.links.some(
-            l => ((l.source as Node).id === source.id && (l.target as Node).id === target.id) ||
-                 ((l.source as Node).id === target.id && (l.target as Node).id === source.id)
-        );
-        if (linkExists) return prev;
-        
-        return {
-            ...prev,
-            links: [...prev.links, { source: source.id, target: target.id, value: 1 }]
-        };
-    });
+    const linkExists = graphData.links.some(
+        l => ((l.source as any) === source.id && (l.target as any) === target.id) ||
+             ((l.source as any) === target.id && (l.target as any) === source.id)
+    );
+    if (linkExists) {
+        setLinkingNodes([]);
+        setSelectedNode(null);
+        return;
+    };
+    
+    const newLink = { source: source.id, target: target.id, value: 1 };
+    const linkId = `${source.id}-${target.id}`;
+    await setDoc(doc(db, "kg-links", linkId), newLink);
+
     setLinkingNodes([]);
     setSelectedNode(null);
   }
 
-   const handleLinkAll = () => {
+   const handleLinkAll = async () => {
     if (linkingNodes.length < 2) return;
-    setGraphData(prev => {
-      const newLinks = [...prev.links];
-      for (let i = 0; i < linkingNodes.length; i++) {
+    const batch = writeBatch(db);
+
+    for (let i = 0; i < linkingNodes.length; i++) {
         for (let j = i + 1; j < linkingNodes.length; j++) {
-          const source = linkingNodes[i];
-          const target = linkingNodes[j];
-           const linkExists = newLinks.some(
-                l => ((l.source as Node).id === source.id && (l.target as Node).id === target.id) ||
-                     ((l.source as Node).id === target.id && (l.target as Node).id === source.id)
+            const source = linkingNodes[i];
+            const target = linkingNodes[j];
+            const linkExists = graphData.links.some(
+                l => ((l.source as any) === source.id && (l.target as any) === target.id) ||
+                     ((l.source as any) === target.id && (l.target as any) === source.id)
             );
-          if (!linkExists) {
-            newLinks.push({ source: source.id, target: target.id, value: 1 });
-          }
+            if (!linkExists) {
+                const newLink = { source: source.id, target: target.id, value: 1 };
+                const linkId = `${source.id}-${target.id}`;
+                const linkRef = doc(db, "kg-links", linkId);
+                batch.set(linkRef, newLink);
+            }
         }
-      }
-      return { ...prev, links: newLinks };
-    });
+    }
+    
+    await batch.commit();
     setLinkingNodes([]);
     setSelectedNode(null);
   };
 
-  const handleUpdateNodeName = () => {
+  const handleUpdateNodeName = async () => {
     if (!selectedNode || !editingNodeName || selectedNode.id === editingNodeName) return;
 
-    setGraphData(prev => {
-        const nodeExists = prev.nodes.some(n => n.id === editingNodeName);
-        if (nodeExists) {
-            alert("A node with this name already exists.");
-            return prev;
-        }
+    const nodeExists = graphData.nodes.some(n => n.id === editingNodeName);
+    if (nodeExists) {
+        alert("A node with this name already exists.");
+        return;
+    }
 
-        return {
-            nodes: prev.nodes.map(n => n.id === selectedNode.id ? { ...n, id: editingNodeName } : n),
-            links: prev.links.map(l => {
-                if ((l.source as Node).id === selectedNode.id) return { ...l, source: editingNodeName };
-                if ((l.target as Node).id === selectedNode.id) return { ...l, target: editingNodeName };
-                return l;
-            })
+    await deleteDoc(doc(db, 'kg-nodes', selectedNode.id));
+    await setDoc(doc(db, 'kg-nodes', editingNodeName), { group: selectedNode.group });
+
+    const batch = writeBatch(db);
+    graphData.links.forEach(async (l) => {
+        const sourceId = (l.source as any).id || l.source;
+        const targetId = (l.target as any).id || l.target;
+
+        if (sourceId === selectedNode.id || targetId === selectedNode.id) {
+            const oldLinkId = `${sourceId}-${targetId}`;
+            await deleteDoc(doc(db, 'kg-links', oldLinkId));
+            
+            const newSource = sourceId === selectedNode.id ? editingNodeName : sourceId;
+            const newTarget = targetId === selectedNode.id ? editingNodeName : targetId;
+            const newLink = { source: newSource, target: newTarget, value: l.value };
+            const newLinkId = `${newSource}-${newTarget}`;
+            await setDoc(doc(db, 'kg-links', newLinkId), newLink);
         }
     });
+    await batch.commit();
+
 
     setSelectedNode(prev => prev ? { ...prev, id: editingNodeName } : null);
   }
@@ -143,7 +199,7 @@ export default function KnowledgeGraph() {
           <h2 className="text-lg font-semibold">File Explorer</h2>
         </CardHeader>
         <CardContent>
-          {/* Mock data removed */}
+          {}
         </CardContent>
       </Card>
 
@@ -199,10 +255,6 @@ export default function KnowledgeGraph() {
                <Button variant="outline" size="sm" onClick={() => handleAddNode(true)}><FolderPlus /> New Folder</Button>
                <Button variant="outline" size="sm" onClick={handleCreateLink} disabled={linkingNodes.length !== 2}><LinkIcon /> Link Nodes</Button>
                <Button variant="destructive" size="sm" onClick={handleDeleteSelected} disabled={!selectedNode}><Trash2 /> Delete</Button>
-            </div>
-             <div className="grid grid-cols-1 gap-2 pt-2">
-              <Button variant="outline" size="sm" className="w-full"><Upload /> Import Folder</Button>
-              <Button variant="outline" size="sm" className="w-full"><FileCode /> Add Project Files</Button>
             </div>
           </div>
 

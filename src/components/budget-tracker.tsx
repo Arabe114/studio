@@ -7,6 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+
 
 type TransactionType = 'income' | 'expense';
 
@@ -24,20 +27,36 @@ export default function BudgetTracker() {
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<TransactionType>('expense');
 
+  useEffect(() => {
+    const q = collection(db, 'transactions');
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const transactionsData: Transaction[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        transactionsData.push({ 
+          id: doc.id, 
+          ...data,
+          date: data.date ? new Date(data.date.seconds * 1000).toLocaleDateString() : new Date().toLocaleDateString()
+        } as Transaction);
+      });
+      transactionsData.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setTransactions(transactionsData);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleAddTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!description || !amount) return;
 
-    const newTransaction: Transaction = {
-        id: `trans-${Date.now()}`,
+    await addDoc(collection(db, 'transactions'), {
         description,
         amount: parseFloat(amount),
         type,
-        date: new Date().toLocaleDateString(),
-    };
+        date: new Date(),
+    });
 
-    setTransactions(prev => [newTransaction, ...prev]);
     setDescription('');
     setAmount('');
   };

@@ -10,9 +10,11 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from './ui/label';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+
 
 type TimerMode = 'work' | 'break';
 
@@ -30,20 +32,35 @@ export default function PomodoroTimer() {
     const [timers, setTimers] = useState<Timer[]>([]);
     const intervalRefs = useRef<Record<string, NodeJS.Timeout | null>>({});
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-    const [editingTimer, setEditingTimer] = useState<Omit<Timer, 'timeLeft' | 'isActive' | 'mode'> & { workDuration: number, breakDuration: number} | null>(null);
+    const [editingTimer, setEditingTimer] = useState<Timer | null>(null);
+
+    useEffect(() => {
+        const q = collection(db, 'timers');
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const timersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Timer));
+            setTimers(timersData);
+        });
+        return () => unsubscribe();
+    }, []);
 
     // Effect to handle countdown
     useEffect(() => {
-        const activeTimer = timers.find(t => t.isActive);
-        if (activeTimer) {
-            if (!intervalRefs.current[activeTimer.id]) {
-                 intervalRefs.current[activeTimer.id] = setInterval(() => {
-                    setTimers(prev => prev.map(t => 
-                        t.id === activeTimer.id ? { ...t, timeLeft: Math.max(0, t.timeLeft - 1) } : t
-                    ));
-                }, 1000);
+        timers.forEach(timer => {
+            if (timer.isActive) {
+                if (!intervalRefs.current[timer.id]) {
+                    intervalRefs.current[timer.id] = setInterval(async () => {
+                        const timerRef = doc(db, 'timers', timer.id);
+                        const newTimeLeft = Math.max(0, timer.timeLeft - 1);
+                        await updateDoc(timerRef, { timeLeft: newTimeLeft });
+                    }, 1000);
+                }
+            } else {
+                if (intervalRefs.current[timer.id]) {
+                    clearInterval(intervalRefs.current[timer.id]!);
+                    intervalRefs.current[timer.id] = null;
+                }
             }
-        }
+        });
         
         return () => {
              Object.values(intervalRefs.current).forEach(interval => {
@@ -55,77 +72,75 @@ export default function PomodoroTimer() {
 
     // Effect to handle timer completion
     useEffect(() => {
-        timers.forEach(timer => {
+        timers.forEach(async timer => {
             if (timer.timeLeft === 0 && timer.isActive) {
                 new Audio('https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3').play();
                 const newMode = timer.mode === 'work' ? 'break' : 'work';
                 const newTimeLeft = newMode === 'work' ? timer.workDuration : timer.breakDuration;
                 
-                 setTimers(prev => prev.map(t => t.id === timer.id ? {
-                    ...t,
+                const timerRef = doc(db, 'timers', timer.id);
+                await updateDoc(timerRef, {
                     isActive: false,
                     mode: newMode,
                     timeLeft: newTimeLeft,
-                } : t));
+                });
             }
         });
     }, [timers]);
 
-    const toggleTimer = (id: string) => {
-        setTimers(prev => prev.map(t => t.id === id ? { ...t, isActive: !t.isActive } : t));
+    const toggleTimer = async (id: string) => {
+        const timer = timers.find(t => t.id === id);
+        if (!timer) return;
+        const timerRef = doc(db, 'timers', id);
+        await updateDoc(timerRef, { isActive: !timer.isActive });
     };
 
-    const resetTimer = (id: string) => {
-         setTimers(prev => prev.map(t => t.id === id ? {
-            ...t,
+    const resetTimer = async (id: string) => {
+        const timer = timers.find(t => t.id === id);
+        if (!timer) return;
+        const timerRef = doc(db, 'timers', id);
+        await updateDoc(timerRef, {
             isActive: false,
             mode: 'work',
-            timeLeft: t.workDuration
-        } : t));
+            timeLeft: timer.workDuration
+        });
     };
 
-    const addTimer = () => {
-        const newTimer: Timer = {
-            id: `timer-${Date.now()}`,
+    const addTimer = async () => {
+        await addDoc(collection(db, 'timers'), {
             name: 'New Timer',
             workDuration: 25 * 60,
             breakDuration: 5 * 60,
             timeLeft: 25 * 60,
             isActive: false,
             mode: 'work',
-        };
-        setTimers(prev => [...prev, newTimer]);
+        });
     };
 
-    const deleteTimer = (id: string) => {
-        setTimers(prev => prev.filter(t => t.id !== id));
+    const deleteTimer = async (id: string) => {
+        await deleteDoc(doc(db, "timers", id));
     };
 
-    const handleEditSave = (e: React.FormEvent) => {
+    const handleEditSave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingTimer) return;
         
-        setTimers(prev => prev.map(t => t.id === editingTimer.id ? {
-            ...t,
+        const timerRef = doc(db, 'timers', editingTimer.id);
+        await updateDoc(timerRef, {
             name: editingTimer.name,
             workDuration: editingTimer.workDuration,
             breakDuration: editingTimer.breakDuration,
-            timeLeft: editingTimer.workDuration,
-            mode: 'work',
+            timeLeft: editingTimer.workDuration, // Reset time on edit
             isActive: false,
-        } : t));
+            mode: 'work',
+        });
 
         setIsEditDialogOpen(false);
         setEditingTimer(null);
     };
 
     const openEditDialog = (timer: Timer) => {
-        setEditingTimer({ 
-            id: timer.id,
-            name: timer.name,
-            workDuration: timer.workDuration,
-            breakDuration: timer.breakDuration
-        });
+        setEditingTimer(timer);
         setIsEditDialogOpen(true);
     };
 
