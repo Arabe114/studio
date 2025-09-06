@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -76,7 +77,7 @@ function FileExplorer({ nodes, selectedFolderId, onSelectFolder, onRename, onDel
                        {isFolder && <ChevronRight className={cn("h-4 w-4 transform transition-transform", isExpanded && "rotate-90")} onClick={(e) => { e.stopPropagation(); toggleFolder(node.id); }} />}
                        {!isFolder && <div className="w-4"></div>}
                         <Folder className={cn(
-                           "h-4 w-4 text-primary group-hover:text-accent-foreground",
+                           "h-4 w-4 text-primary transition-colors group-hover:text-accent-foreground",
                            (selectedFolderId === node.id || editingFolderId === node.id) && "text-accent-foreground"
                         )} />
                        
@@ -222,14 +223,39 @@ export default function KnowledgeGraph() {
         parentId: selectedFolderId
     };
     
-    await setDoc(doc(db, "kg-nodes", newNodeId), newNodeData);
+    const batch = writeBatch(db);
+    const newNodeRef = doc(db, "kg-nodes", newNodeId);
+    batch.set(newNodeRef, newNodeData);
 
-    if (selectedNode && selectedNode.id !== newNodeId && selectedFolderId === null) {
-        const newLink = { source: selectedNode.id, target: newNodeId, value: 1 };
-        const linkId = `${selectedNode.id}-${newNodeId}`;
-        await setDoc(doc(db, "kg-links", linkId), newLink);
+    const createLink = async (sourceId: string, targetId: string) => {
+        const linkId = `${sourceId}-${targetId}`;
+        const reverseLinkId = `${targetId}-${sourceId}`;
+        const linkExists = allLinks.some(l => {
+            const s = (l.source as any).id || l.source;
+            const t = (l.target as any).id || l.target;
+            return (s === sourceId && t === targetId) || (s === targetId && t === sourceId);
+        });
+
+        if (!linkExists) {
+            const newLink = { source: sourceId, target: targetId, value: 1 };
+            const linkRef = doc(db, "kg-links", linkId);
+            batch.set(linkRef, newLink);
+        }
+    };
+    
+    // If a node is selected, link to it.
+    if (selectedNode && selectedNode.id !== newNodeId) {
+        await createLink(selectedNode.id, newNodeId);
     }
-  }, [selectedNode, allNodes, selectedFolderId]);
+
+    // If inside a folder, also link to the parent folder.
+    if (selectedFolderId && !isFolder) {
+       await createLink(selectedFolderId, newNodeId);
+    }
+
+    await batch.commit();
+
+  }, [selectedNode, allNodes, allLinks, selectedFolderId]);
   
     const deleteNodeAndChildren = useCallback(async (nodeId: string) => {
         const batch = writeBatch(db);
@@ -263,7 +289,15 @@ export default function KnowledgeGraph() {
         await Promise.all(deletePromises);
         await batch.commit();
 
-    }, [allNodes]);
+        if (selectedNode && nodesToDelete.has(selectedNode.id)) {
+            setSelectedNode(null);
+            setLinkingNodes([]);
+        }
+        if(selectedFolderId && nodesToDelete.has(selectedFolderId)) {
+            setSelectedFolderId(null);
+        }
+
+    }, [allNodes, selectedNode, selectedFolderId]);
 
 
   const handleDeleteSelected = async () => {
@@ -275,14 +309,7 @@ export default function KnowledgeGraph() {
 
     const handleDeleteFolder = useCallback(async (folderId: string) => {
         await deleteNodeAndChildren(folderId);
-        if (selectedFolderId === folderId) {
-            setSelectedFolderId(null);
-        }
-        if(selectedNode && (selectedNode.id === folderId || selectedNode.parentId === folderId)) {
-            setSelectedNode(null);
-            setLinkingNodes([]);
-        }
-    }, [deleteNodeAndChildren, selectedFolderId, selectedNode]);
+    }, [deleteNodeAndChildren]);
   
   const handleCreateLink = async () => {
     if (linkingNodes.length !== 2) return;
@@ -361,13 +388,13 @@ export default function KnowledgeGraph() {
             return sourceId === oldNodeId || targetId === oldNodeId;
         });
 
-        relatedLinks.forEach(l => {
+        const linkUpdatePromises = relatedLinks.map(async (l) => {
             const sourceId = (l.source as any).id || l.source;
             const targetId = (l.target as any).id || l.target;
             
             const oldLinkRef = doc(db, 'kg-links', `${sourceId}-${targetId}`);
-            batch.delete(oldLinkRef);
             const oldReverseLinkRef = doc(db, 'kg-links', `${targetId}-${sourceId}`);
+            batch.delete(oldLinkRef);
             batch.delete(oldReverseLinkRef);
 
             const newSource = sourceId === oldNodeId ? newNodeName : sourceId;
@@ -376,6 +403,8 @@ export default function KnowledgeGraph() {
             const newLinkRef = doc(db, 'kg-links', newLinkId);
             batch.set(newLinkRef, { source: newSource, target: newTarget, value: l.value });
         });
+
+        await Promise.all(linkUpdatePromises);
         
         // Update parentId for all children if it was a folder
         if (oldNodeData.type === 'folder') {
@@ -505,3 +534,4 @@ export default function KnowledgeGraph() {
     </div>
   );
 }
+
