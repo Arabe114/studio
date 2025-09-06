@@ -86,9 +86,11 @@ export default function KnowledgeGraph() {
                <Button variant="outline" size="sm"><FilePlus /> New Node</Button>
                <Button variant="outline" size="sm"><FolderPlus /> New Folder</Button>
             </div>
-            <Button variant="outline" size="sm" className="w-full"><Trash2 /> Delete Selected</Button>
-            <Button variant="outline" size="sm" className="w-full"><Upload /> Import Folder</Button>
-            <Button variant="outline" size="sm" className="w-full"><FileCode /> Add Project Files</Button>
+            <div className="grid grid-cols-1 gap-2">
+              <Button variant="outline" size="sm" className="w-full"><Trash2 /> Delete Selected</Button>
+              <Button variant="outline" size="sm" className="w-full"><Upload /> Import Folder</Button>
+              <Button variant="outline" size="sm" className="w-full"><FileCode /> Add Project Files</Button>
+            </div>
           </div>
 
           <div className="space-y-4">
