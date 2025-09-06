@@ -13,6 +13,8 @@ import {
   PiggyBank,
   Cpu,
   Newspaper,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Dashboard from '@/components/dashboard';
@@ -56,6 +58,7 @@ const navItems: NavItem[] = [
 
 export default function AppShell() {
   const [activeModule, setActiveModule] = useState<Module>('dashboard');
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
   const renderModule = () => {
     switch (activeModule) {
@@ -84,26 +87,60 @@ export default function AppShell() {
 
   return (
     <div className="flex h-screen w-full bg-background">
-      <nav className="flex flex-col items-center gap-4 border-r border-border bg-card p-4 overflow-y-auto">
-        <div className="mb-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-neon-primary">
-          <Hexagon className="h-6 w-6" />
+      <nav
+        className={cn(
+          'flex flex-col border-r border-border bg-card p-4 transition-[width] duration-300 ease-in-out',
+          isSidebarExpanded ? 'w-60' : 'w-20 items-center'
+        )}
+      >
+        <div
+          className={cn(
+            'mb-4 flex h-10 shrink-0 items-center',
+            isSidebarExpanded ? 'w-full ' : 'w-10 justify-center'
+          )}
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-neon-primary">
+            <Hexagon className="h-6 w-6" />
+          </div>
+           {isSidebarExpanded && (
+             <span className="ml-3 text-lg font-semibold">SynergyHub</span>
+           )}
         </div>
-        <div className="flex flex-col gap-2">
+
+        <div className="flex flex-col gap-2 flex-grow">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveModule(item.id)}
               className={cn(
-                'flex h-10 w-10 items-center justify-center rounded-lg transition-colors',
+                'flex h-10 items-center gap-3 rounded-lg px-3 transition-colors',
                 'hover:bg-accent hover:text-accent-foreground',
-                activeModule === item.id ? 'bg-accent text-accent-foreground shadow-neon-accent' : 'text-muted-foreground'
+                activeModule === item.id
+                  ? 'bg-accent text-accent-foreground shadow-neon-accent'
+                  : 'text-muted-foreground',
+                isSidebarExpanded ? 'w-full justify-start' : 'w-10 justify-center'
               )}
-              aria-label={item.label}
               title={item.label}
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className="h-5 w-5 shrink-0" />
+              {isSidebarExpanded && <span className="truncate">{item.label}</span>}
             </button>
           ))}
+        </div>
+        
+        <div className="mt-auto">
+           <button
+              onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+              className={cn(
+                'flex h-10 items-center gap-3 rounded-lg px-3 text-muted-foreground transition-colors',
+                'hover:bg-accent hover:text-accent-foreground',
+                isSidebarExpanded ? 'w-full justify-start' : 'w-10 justify-center'
+              )}
+              title={isSidebarExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
+            >
+              {isSidebarExpanded ? <ChevronsLeft className="h-5 w-5 shrink-0" /> : <ChevronsRight className="h-5 w-5 shrink-0" /> }
+              {isSidebarExpanded && <span className="truncate">Collapse</span>}
+            </button>
         </div>
       </nav>
       <main className="flex-1 overflow-auto p-4 sm:p-6">
