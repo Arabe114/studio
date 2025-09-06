@@ -4,7 +4,7 @@
 import { useEffect, useRef, useMemo } from 'react';
 import * as d3 from 'd3';
 
-export type Node = { id: string; group: number; fx?: number | null; fy?: number | null; x?: number; y?: number; imageUrl?: string };
+export type Node = { id: string; group: number; fx?: number | null; fy?: number | null; x?: number; y?: number; imageUrl?: string; html?: string; };
 export type Link = { source: string | Node; target: string | Node; value: number };
 export type GraphData = { nodes: Node[]; links: Link[] };
 
@@ -17,6 +17,8 @@ interface ForceGraphProps {
   repelStrength: number;
   linkDistance: number;
   centerForce: boolean;
+  centerView?: boolean;
+  onCenterViewComplete?: () => void;
 }
 
 const NODE_RADIUS = 12;
@@ -30,10 +32,13 @@ export default function ForceGraph({
   linkingNodeIds,
   repelStrength,
   linkDistance,
-  centerForce
+  centerForce,
+  centerView,
+  onCenterViewComplete
 }: ForceGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const simulationRef = useRef<d3.Simulation<Node, Link>>();
+  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown>>();
 
   const { nodes, links } = useMemo(() => {
     const nodesCopy = data.nodes.map(d => ({ ...d }));
@@ -95,7 +100,7 @@ export default function ForceGraph({
       .attr('r', IMAGE_NODE_SIZE / 2);
 
     // Regular circle nodes
-    nodeGroups.filter(d => !d.imageUrl)
+    nodeGroups.filter(d => !d.imageUrl && !d.html)
       .append('circle')
       .attr('r', NODE_RADIUS)
       .attr('fill', d => color(d.group.toString()));
@@ -114,14 +119,30 @@ export default function ForceGraph({
       .attr('x', -IMAGE_NODE_SIZE / 2)
       .attr('y', -IMAGE_NODE_SIZE / 2)
       .attr('clip-path', d => `url(#clip-${d.id.replace(/[^a-zA-Z0-9]/g, '-')})`);
+
+    // HTML nodes
+    const htmlNodes = nodeGroups.filter(d => !!d.html);
+    htmlNodes.append('foreignObject')
+        .attr('width', 180)
+        .attr('height', 80)
+        .attr('x', -90)
+        .attr('y', -40)
+        .html(d => d.html!)
+        .on('mouseover', function() {
+            d3.select(this).style('cursor', 'pointer');
+        })
+        .on('mouseout', function() {
+            d3.select(this).style('cursor', 'default');
+        });
+
       
     // Selection/Highlight rectangle for all nodes
     nodeGroups.append('rect')
         .attr('class', 'selection-highlight')
-        .attr('width', IMAGE_NODE_SIZE + 4)
-        .attr('height', IMAGE_NODE_SIZE + 4)
-        .attr('x', -IMAGE_NODE_SIZE/2 - 2)
-        .attr('y', -IMAGE_NODE_SIZE/2 - 2)
+        .attr('width', d => d.html ? 184 : IMAGE_NODE_SIZE + 4)
+        .attr('height', d => d.html ? 84 : IMAGE_NODE_SIZE + 4)
+        .attr('x', d => d.html ? -92 : -IMAGE_NODE_SIZE/2 - 2)
+        .attr('y', d => d.html ? -42 : -IMAGE_NODE_SIZE/2 - 2)
         .attr('rx', 8)
         .attr('ry', 8)
         .attr('fill', 'none')
@@ -131,19 +152,20 @@ export default function ForceGraph({
 
     const labels = labelG
       .selectAll('text')
-      .data(nodes, d => d.id)
+      .data(nodes.filter(n => !n.html), d => d.id) // Only create labels for non-html nodes
       .join('text')
       .attr('pointer-events', 'none')
       .attr('dx', d => d.imageUrl ? (IMAGE_NODE_SIZE / 2 + 5) : (NODE_RADIUS + 5))
       .attr('dy', '.35em')
       .attr('fill', 'hsl(var(--foreground))')
       .text(d => d.id);
-
-    const zoom = d3.zoom<SVGSVGElement, unknown>().on('zoom', (event) => {
+      
+    const zoomBehavior = d3.zoom<SVGSVGElement, unknown>().on('zoom', (event) => {
         d3.selectAll('.nodes, .links, .labels').attr('transform', event.transform);
     });
+    zoomRef.current = zoomBehavior;
     
-    svg.call(zoom as any)
+    svg.call(zoomBehavior as any)
        .on('click', () => onNodeClick(null));
 
     simulation.on('tick', () => {
@@ -210,6 +232,39 @@ export default function ForceGraph({
     }
   }, [selectedNodeId, linkingNodeIds]);
 
+  // Effect for centering view
+  useEffect(() => {
+    if (!centerView || !svgRef.current || !zoomRef.current || !nodes.length) return;
+
+    const svg = d3.select(svgRef.current);
+    const container = svg.node()!.parentElement!;
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    const xExtent = d3.extent(nodes, d => d.x);
+    const yExtent = d3.extent(nodes, d => d.y);
+
+    if (xExtent[0] === undefined || xExtent[1] === undefined || yExtent[0] === undefined || yExtent[1] === undefined) {
+      return;
+    }
+    
+    const boundsWidth = xExtent[1] - xExtent[0];
+    const boundsHeight = yExtent[1] - yExtent[0];
+    const boundsCenterX = xExtent[0] + boundsWidth / 2;
+    const boundsCenterY = yExtent[0] + boundsHeight / 2;
+
+    const scale = Math.min(width / boundsWidth, height / boundsHeight) * 0.8;
+    const transform = d3.zoomIdentity
+        .translate(width / 2 - scale * boundsCenterX, height / 2 - scale * boundsCenterY)
+        .scale(scale);
+
+    svg.transition().duration(750).call(zoomRef.current.transform, transform);
+    
+    if (onCenterViewComplete) {
+      onCenterViewComplete();
+    }
+  }, [centerView, nodes, onCenterViewComplete]);
+
 
   function drag(simulation: d3.Simulation<Node, Link>) {
     function dragstarted(event: d3.D3DragEvent<any, Node, any>, d: Node) {
@@ -237,5 +292,3 @@ export default function ForceGraph({
 
   return <svg ref={svgRef} width="100%" height="100%"></svg>;
 }
-
-    

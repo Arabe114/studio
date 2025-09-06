@@ -1,21 +1,19 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import ForceGraph from './force-graph';
 import type { Node as GraphNode, Link as GraphLink } from './force-graph';
-import { Plus, Link as LinkIcon, Trash2 } from 'lucide-react';
+import { Plus, Link as LinkIcon, Trash2, LocateFixed } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
-  SheetClose
 } from '@/components/ui/sheet';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -27,6 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+import { CheckCircle, Circle, RefreshCw } from 'lucide-react';
 
 type TaskStatus = 'todo' | 'in-progress' | 'done';
 
@@ -46,6 +46,17 @@ const statusToGroup: Record<TaskStatus, number> = {
   'in-progress': 2,
   'done': 3,
 };
+const statusToIcon: Record<TaskStatus, React.ReactNode> = {
+    'todo': <Circle className="h-4 w-4 text-muted-foreground" />,
+    'in-progress': <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />,
+    'done': <CheckCircle className="h-4 w-4 text-green-500" />,
+};
+const statusToColor: Record<TaskStatus, string> = {
+    'todo': 'hsl(var(--border))',
+    'in-progress': 'hsl(var(--primary))',
+    'done': 'hsl(var(--ring))',
+}
+
 
 export default function KanbanBoard() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -55,6 +66,7 @@ export default function KanbanBoard() {
   const [firstLinkNode, setFirstLinkNode] = useState<GraphNode | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [sheetTask, setSheetTask] = useState<Partial<Task> | null>(null);
+  const [centerView, setCenterView] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'tasks'), (snapshot) => {
@@ -69,7 +81,13 @@ export default function KanbanBoard() {
       id: task.id,
       group: statusToGroup[task.status],
       fx: task.x,
-      fy: task.y
+      fy: task.y,
+      html: `
+        <div class="p-3 rounded-lg border-2" style="border-color: ${statusToColor[task.status]}; background-color: hsl(var(--card)); color: hsl(var(--card-foreground)); width: 180px; height: 80px;">
+          <div class="font-bold truncate text-sm">${task.title}</div>
+          <div class="text-xs text-muted-foreground truncate">${task.description}</div>
+        </div>
+      `
     }));
     const links = tasks.flatMap(task =>
       task.dependencies.map(depId => ({
@@ -199,6 +217,7 @@ export default function KanbanBoard() {
             >
                 <LinkIcon /> {isLinkingMode ? (firstLinkNode ? 'Select Target Task' : 'Select Source Task') : 'Link Tasks'}
             </Button>
+            <Button variant="outline" onClick={() => setCenterView(true)}><LocateFixed /> Center View</Button>
         </div>
       </div>
       <Card className="flex-grow relative">
@@ -208,8 +227,10 @@ export default function KanbanBoard() {
             onNodeDrag={handleNodeDrag}
             selectedNodeId={isLinkingMode ? firstLinkNode?.id : selectedTask?.id}
             linkingNodeIds={isLinkingMode && firstLinkNode ? [firstLinkNode.id] : []}
-            repelStrength={-1000}
-            linkDistance={150}
+            repelStrength={-1500}
+            linkDistance={250}
+            centerView={centerView}
+            onCenterViewComplete={() => setCenterView(false)}
             centerForce={false}
         />
       </Card>
