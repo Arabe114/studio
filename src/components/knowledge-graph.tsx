@@ -75,7 +75,7 @@ function FileExplorer({ nodes, selectedFolderId, onSelectFolder, onRename, onDel
                     >
                        {isFolder && <ChevronRight className={cn("h-4 w-4 transform transition-transform", isExpanded && "rotate-90")} onClick={(e) => { e.stopPropagation(); toggleFolder(node.id); }} />}
                        {!isFolder && <div className="w-4"></div>}
-                       {isFolder ? <Folder className="h-4 w-4 text-primary"/> : <File className="h-4 w-4 text-muted-foreground"/>}
+                       {isFolder ? <Folder className="h-4 w-4 text-primary group-hover:text-accent-foreground"/> : <File className="h-4 w-4 text-muted-foreground"/>}
                        
                        {editingFolderId === node.id ? (
                            <Input 
@@ -116,7 +116,7 @@ function FileExplorer({ nodes, selectedFolderId, onSelectFolder, onRename, onDel
                 className={cn("flex items-center gap-2 p-1 rounded-md cursor-pointer hover:bg-accent", selectedFolderId === null && "bg-accent")}
                 onClick={() => onSelectFolder(null)}
             >
-                <Folder className="h-4 w-4 text-primary" />
+                <Folder className="h-4 w-4 text-primary group-hover:text-accent-foreground" />
                 <span>All Files</span>
             </div>
             {renderTree(rootNodes)}
@@ -502,5 +502,3 @@ export default function KnowledgeGraph() {
     </div>
   );
 }
-
-    
