@@ -2,14 +2,39 @@
 
 import { useState } from 'react';
 import type { FC } from 'react';
-import { LayoutDashboard, BrainCircuit, Kanban, FileText, Hexagon } from 'lucide-react';
+import {
+  LayoutDashboard,
+  BrainCircuit,
+  Kanban,
+  FileText,
+  Hexagon,
+  Calendar,
+  Timer,
+  PiggyBank,
+  Cpu,
+  Newspaper,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Dashboard from '@/components/dashboard';
 import KnowledgeGraph from '@/components/knowledge-graph';
 import KanbanBoard from '@/components/kanban-board';
 import NotesEditor from '@/components/notes-editor';
+import CalendarScheduler from '@/components/calendar-scheduler';
+import PomodoroTimer from '@/components/pomodoro-timer';
+import BudgetTracker from '@/components/budget-tracker';
+import AiTools from '@/components/ai-tools';
+import TechNews from '@/components/tech-news';
 
-type Module = 'dashboard' | 'knowledge-graph' | 'kanban-board' | 'notes-editor';
+type Module =
+  | 'dashboard'
+  | 'knowledge-graph'
+  | 'kanban-board'
+  | 'notes-editor'
+  | 'calendar'
+  | 'pomodoro'
+  | 'budget'
+  | 'ai-tools'
+  | 'tech-news';
 
 interface NavItem {
   id: Module;
@@ -22,6 +47,11 @@ const navItems: NavItem[] = [
   { id: 'knowledge-graph', icon: BrainCircuit, label: 'Knowledge Graph' },
   { id: 'kanban-board', icon: Kanban, label: 'Task Board' },
   { id: 'notes-editor', icon: FileText, label: 'Notes Editor' },
+  { id: 'calendar', icon: Calendar, label: 'Calendar' },
+  { id: 'pomodoro', icon: Timer, label: 'Pomodoro Timer' },
+  { id: 'budget', icon: PiggyBank, label: 'Budget Tracker' },
+  { id: 'ai-tools', icon: Cpu, label: 'AI Tools' },
+  { id: 'tech-news', icon: Newspaper, label: 'Tech News' },
 ];
 
 export default function AppShell() {
@@ -37,6 +67,16 @@ export default function AppShell() {
         return <KanbanBoard />;
       case 'notes-editor':
         return <NotesEditor />;
+      case 'calendar':
+        return <CalendarScheduler />;
+      case 'pomodoro':
+        return <PomodoroTimer />;
+      case 'budget':
+        return <BudgetTracker />;
+      case 'ai-tools':
+        return <AiTools />;
+      case 'tech-news':
+        return <TechNews />;
       default:
         return <Dashboard />;
     }
@@ -44,8 +84,8 @@ export default function AppShell() {
 
   return (
     <div className="flex h-screen w-full bg-background">
-      <nav className="flex flex-col items-center gap-4 border-r border-border bg-card p-4">
-        <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+      <nav className="flex flex-col items-center gap-4 border-r border-border bg-card p-4 overflow-y-auto">
+        <div className="mb-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <Hexagon className="h-6 w-6" />
         </div>
         <div className="flex flex-col gap-2">
