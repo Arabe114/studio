@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { ChevronRight, Folder, Star, Paperclip } from 'lucide-react';
+import { ChevronRight, Folder, Star, Paperclip, FilePlus, FolderPlus, Trash2, Upload, FileCode } from 'lucide-react';
 import ForceGraph from './force-graph';
+import { Button } from './ui/button';
 
 export default function KnowledgeGraph() {
   const [repelStrength, setRepelStrength] = useState(-500);
@@ -78,6 +79,18 @@ export default function KnowledgeGraph() {
         </CardHeader>
         <CardContent className="space-y-6">
           <Input placeholder="Search nodes..." />
+
+          <div className="space-y-2">
+            <h3 className="font-medium">Actions</h3>
+            <div className="grid grid-cols-2 gap-2">
+               <Button variant="outline" size="sm"><FilePlus /> New Node</Button>
+               <Button variant="outline" size="sm"><FolderPlus /> New Folder</Button>
+            </div>
+            <Button variant="outline" size="sm" className="w-full"><Trash2 /> Delete Selected</Button>
+            <Button variant="outline" size="sm" className="w-full"><Upload /> Import Folder</Button>
+            <Button variant="outline" size="sm" className="w-full"><FileCode /> Add Project Files</Button>
+          </div>
+
           <div className="space-y-4">
             <h3 className="font-medium">Forces</h3>
             <div className="flex items-center justify-between">
