@@ -37,6 +37,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from './ui/button';
+import AnimatedBackground from './animated-background';
 
 type Module =
   | 'dashboard'
@@ -99,9 +100,10 @@ export default function AppShell() {
 
   return (
     <div className="flex h-screen w-full bg-background">
+      <AnimatedBackground />
       <nav
         className={cn(
-          'flex flex-col border-r border-border bg-card p-4 transition-[width] duration-300 ease-in-out',
+          'flex flex-col border-r border-border bg-card/80 backdrop-blur-sm p-4 transition-[width] duration-300 ease-in-out z-10',
           isSidebarExpanded ? 'w-60' : 'w-20 items-center'
         )}
       >
@@ -182,7 +184,7 @@ export default function AppShell() {
             </button>
         </div>
       </nav>
-      <main className="flex-1 overflow-auto p-4 sm:p-6">
+      <main className="flex-1 overflow-auto p-4 sm:p-6 bg-background/80 backdrop-blur-sm z-10">
         <div className="animate-in fade-in-50 duration-500">
            {renderModule()}
         </div>
