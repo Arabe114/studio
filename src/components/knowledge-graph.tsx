@@ -231,55 +231,54 @@ export default function KnowledgeGraph() {
     }
   }, [selectedNode, allNodes, selectedFolderId]);
   
-    const deleteNodeAndChildren = useCallback(async (nodeId: string, batch: WriteBatch) => {
-        const nodeToDelete = allNodes.find(n => n.id === nodeId);
-        if (!nodeToDelete) return;
+    const deleteNodeAndChildren = useCallback(async (nodeId: string) => {
+        const batch = writeBatch(db);
+        const nodesToDelete = new Set<string>();
 
-        // Delete the node itself
-        const nodeRef = doc(db, "kg-nodes", nodeId);
-        batch.delete(nodeRef);
-
-        // Delete associated links
-        const sourceLinksQuery = query(collection(db, 'kg-links'), where('source', '==', nodeId));
-        const targetLinksQuery = query(collection(db, 'kg-links'), where('target', '==', nodeId));
-        
-        const [sourceLinksSnapshot, targetLinksSnapshot] = await Promise.all([
-            getDocs(sourceLinksQuery),
-            getDocs(targetLinksQuery),
-        ]);
-
-        sourceLinksSnapshot.forEach(linkDoc => batch.delete(linkDoc.ref));
-        targetLinksSnapshot.forEach(linkDoc => batch.delete(linkDoc.ref));
-
-        // If it's a folder, recursively delete children
-        if (nodeToDelete.type === 'folder') {
-            const children = allNodes.filter(n => n.parentId === nodeId);
-            for (const child of children) {
-                await deleteNodeAndChildren(child.id, batch);
-            }
+        function findChildrenRecursive(id: string) {
+            nodesToDelete.add(id);
+            const children = allNodes.filter(n => n.parentId === id);
+            children.forEach(child => findChildrenRecursive(child.id));
         }
+
+        findChildrenRecursive(nodeId);
+
+        const deletePromises: Promise<any>[] = [];
+
+        nodesToDelete.forEach(id => {
+            const nodeRef = doc(db, 'kg-nodes', id);
+            batch.delete(nodeRef);
+
+            const sourceLinksQuery = query(collection(db, 'kg-links'), where('source', '==', id));
+            const targetLinksQuery = query(collection(db, 'kg-links'), where('target', '==', id));
+
+            deletePromises.push(getDocs(sourceLinksQuery).then(snapshot => {
+                snapshot.forEach(doc => batch.delete(doc.ref));
+            }));
+            deletePromises.push(getDocs(targetLinksQuery).then(snapshot => {
+                snapshot.forEach(doc => batch.delete(doc.ref));
+            }));
+        });
+        
+        await Promise.all(deletePromises);
+        await batch.commit();
+
     }, [allNodes]);
 
 
   const handleDeleteSelected = async () => {
     if (!selectedNode) return;
-    const batch = writeBatch(db);
-    await deleteNodeAndChildren(selectedNode.id, batch);
-    await batch.commit();
-
+    await deleteNodeAndChildren(selectedNode.id);
     setSelectedNode(null);
     setLinkingNodes([]);
   };
 
     const handleDeleteFolder = useCallback(async (folderId: string) => {
-        const batch = writeBatch(db);
-        await deleteNodeAndChildren(folderId, batch);
-        await batch.commit();
-
+        await deleteNodeAndChildren(folderId);
         if (selectedFolderId === folderId) {
             setSelectedFolderId(null);
         }
-        if(selectedNode?.id === folderId) {
+        if(selectedNode && (selectedNode.id === folderId || selectedNode.parentId === folderId)) {
             setSelectedNode(null);
             setLinkingNodes([]);
         }
