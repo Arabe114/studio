@@ -124,7 +124,7 @@ export default {
         'success-pop': 'success-pop 0.3s ease-out',
         'neon-pulse': 'neon-pulse 4s ease-in-out infinite',
         'neon-border-pulse': 'neon-border-pulse 3s ease-in-out infinite',
-        'shimmer': 'shimmer 2s linear infinite'
+        'shimmer': 'shimmer 1s linear infinite'
       },
       boxShadow: {
         'neon-primary': '0 0 8px hsl(var(--primary) / 0.5), 0 0 12px hsl(var(--primary) / 0.5)',
