@@ -15,7 +15,7 @@
   "systemTheme": "Sistema",
   "collapseSidebar": "Recolher Barra Lateral",
   "expandSidebar": "Expandir Barra Lateral",
-  "welcomeMessage": "Bem-vindo ao seu novo espaço de trabalho unificado. Alterne perfeitamente entre seu grafo de conhecimento, quadro de tarefas e notas para turbinar sua produtividade.",
+  "welcomeMessage": "Aqui está uma visão geral do seu espaço de trabalho. Vá para qualquer módulo para começar.",
   "electronicLabNotebook": "Caderno de Laboratório Eletrônico",
   "aiToolsDiscovery": "Descoberta de Ferramentas de IA",
   "aiToolsDescription": "Uma lista com curadoria de ferramentas de IA de toda a web para aprimorar sua produtividade e criatividade.",
@@ -105,5 +105,8 @@
   "getTodaysHeadlines": "Clique no botão \"Buscar Últimas Notícias\" para obter as principais notícias de hoje do mundo da tecnologia.",
   "fetchError": "Falha ao buscar notícias de tecnologia. Por favor, tente novamente mais tarde.",
   "english": "English",
-  "portuguese": "Português (BR)"
+  "portuguese": "Português (BR)",
+  "noUpcomingEvents": "Nenhum evento futuro.",
+  "accessKnowledgeGraph": "Organize suas ideias e crie conexões.",
+  "accessNotesEditor": "Capture seus pensamentos e formate-os facilmente."
 }

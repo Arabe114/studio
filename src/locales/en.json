@@ -15,7 +15,7 @@
   "systemTheme": "System",
   "collapseSidebar": "Collapse Sidebar",
   "expandSidebar": "Expand Sidebar",
-  "welcomeMessage": "Welcome to your new unified workspace. Seamlessly switch between your knowledge graph, task board, and notes to supercharge your productivity.",
+  "welcomeMessage": "Here's a quick overview of your workspace. Jump to any module to get started.",
   "electronicLabNotebook": "Electronic Lab Notebook",
   "aiToolsDiscovery": "AI Tools Discovery",
   "aiToolsDescription": "A curated list of AI tools from around the web to enhance your productivity and creativity.",
@@ -105,5 +105,8 @@
   "getTodaysHeadlines": "Click the \"Fetch Latest News\" button to get today's top stories from the world of tech.",
   "fetchError": "Failed to fetch tech news. Please try again later.",
   "english": "English",
-  "portuguese": "Português (BR)"
+  "portuguese": "Português (BR)",
+  "noUpcomingEvents": "No upcoming events.",
+  "accessKnowledgeGraph": "Organize your ideas and build connections.",
+  "accessNotesEditor": "Capture your thoughts and format them easily."
 }

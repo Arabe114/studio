@@ -79,7 +79,7 @@ export default function AppShell() {
   const renderModule = () => {
     switch (activeModule) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard setActiveModule={setActiveModule} />;
       case 'knowledge-graph':
         return <KnowledgeGraph />;
       case 'kanban-board':
@@ -97,7 +97,7 @@ export default function AppShell() {
       case 'tech-news':
         return <TechNews />;
       default:
-        return <Dashboard />;
+        return <Dashboard setActiveModule={setActiveModule}/>;
     }
   };
 
@@ -116,7 +116,7 @@ export default function AppShell() {
             isSidebarExpanded ? 'w-full ' : 'w-10 justify-center'
           )}
         >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-neon-primary">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-neon-primary hover:shadow-lg hover:scale-105 transition-all duration-200">
             {t('eln')}
           </div>
            {isSidebarExpanded && (
