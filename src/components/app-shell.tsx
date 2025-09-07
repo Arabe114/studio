@@ -128,12 +128,13 @@ export default function AppShell() {
       <nav
         className={cn(
           'flex flex-col border-r border-border bg-card/60 backdrop-blur-sm p-4 transition-[width] duration-300 ease-in-out z-10',
-          isSidebarExpanded ? 'w-60' : 'w-20 items-center'
+          isSidebarExpanded ? 'w-60' : 'w-20',
+          !isSidebarExpanded && 'items-center'
         )}
       >
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center">
-            <div className={cn("flex h-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-neon-primary hover:shadow-lg hover:scale-105 transition-all duration-200", isSidebarExpanded ? "w-10" : "w-full")}>
-                AIO
+        <div className={cn("flex h-10 mb-4 items-center", isSidebarExpanded ? 'justify-start' : 'justify-center w-full')}>
+            <div className={cn("flex h-10 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-neon-primary hover:shadow-lg hover:scale-105 transition-all duration-200", isSidebarExpanded ? "w-10" : "w-10")}>
+                ELN
              </div>
              <span className={cn(
                  "text-lg font-semibold text-primary [text-shadow:0_0_8px_hsl(var(--primary)/_0.8)] ml-3 transition-opacity duration-200 ease-out",
@@ -141,7 +142,7 @@ export default function AppShell() {
              )}>{t('eln')}</span>
         </div>
 
-        <div className="flex flex-grow flex-col gap-2">
+        <div className="flex flex-grow flex-col gap-2 w-full">
           {navItems.map((item) => (
             <button
               key={item.id}
@@ -162,7 +163,7 @@ export default function AppShell() {
           ))}
         </div>
         
-        <div className="mt-auto flex flex-col gap-2">
+        <div className="mt-auto flex flex-col gap-2 w-full">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className={cn(
