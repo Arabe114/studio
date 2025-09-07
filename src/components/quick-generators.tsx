@@ -6,10 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Slider } from './ui/slider';
 import { Checkbox } from './ui/checkbox';
-import { Copy, RefreshCw } from 'lucide-react';
+import { Copy, RefreshCw, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from './ui/textarea';
 import Image from 'next/image';
@@ -72,6 +72,10 @@ export default function QuickGenerators() {
   const [hexColor, setHexColor] = useState('#8b5cf6');
   const [rgbColor, setRgbColor] = useState('');
   const [hslColor, setHslColor] = useState('');
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [hoverColor, setHoverColor] = useState<string | null>(null);
+  const imageCanvasRef = useRef<HTMLCanvasElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // Case Converter State
   const [caseInput, setCaseInput] = useState('Hello World');
@@ -126,11 +130,13 @@ export default function QuickGenerators() {
       setUuid(crypto.randomUUID());
   };
 
-  const convertColor = () => {
-    let hex = hexColor.startsWith('#') ? hexColor.slice(1) : hexColor;
+  const convertColor = (colorStr: string) => {
+    let hex = colorStr.startsWith('#') ? colorStr.slice(1) : colorStr;
     if (hex.length === 3) {
       hex = hex.split('').map(char => char + char).join('');
     }
+    if (hex.length !== 6) return; // Invalid hex
+
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
     const b = parseInt(hex.substring(4, 6), 16);
@@ -155,6 +161,53 @@ export default function QuickGenerators() {
     setHslColor(`hsl(${Math.round(h*360)}, ${Math.round(s*100)}%, ${Math.round(l*100)}%)`);
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const url = URL.createObjectURL(e.target.files[0]);
+      setImageSrc(url);
+    }
+  };
+
+  useEffect(() => {
+    if (imageSrc && imageCanvasRef.current) {
+        const canvas = imageCanvasRef.current;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const img = new window.Image();
+        img.src = imageSrc;
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+        };
+    }
+  }, [imageSrc]);
+  
+  const rgbToHex = (r:number, g:number, b:number) => '#' + [r, g, b].map(x => {
+    const hex = x.toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  }).join('');
+
+  const pickColor = (event: React.MouseEvent<HTMLCanvasElement>, action: 'hover' | 'click') => {
+    if (!imageCanvasRef.current) return;
+    const canvas = imageCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const pixel = ctx.getImageData(x, y, 1, 1).data;
+    const hex = rgbToHex(pixel[0], pixel[1], pixel[2]);
+    
+    if (action === 'hover') {
+        setHoverColor(hex);
+    } else { // click
+        setHexColor(hex);
+    }
+  };
+
   const convertCase = () => {
       switch (caseType) {
           case 'uppercase': setCaseOutput(caseInput.toUpperCase()); break;
@@ -174,11 +227,14 @@ export default function QuickGenerators() {
     generateQrCode();
     generateLoremIpsum();
     generateUuid();
-    convertColor();
+    convertColor(hexColor);
     convertCase();
     generateHash();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    convertColor(hexColor);
+  }, [hexColor]);
 
   return (
     <div>
@@ -256,13 +312,14 @@ export default function QuickGenerators() {
             <div className="flex-grow flex flex-col space-y-4">
                  <div className="space-y-2">
                     <Label htmlFor="hex-color">{t('hexColor')}</Label>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       <Input id="hex-color" value={hexColor} onChange={(e) => setHexColor(e.target.value)} />
                       <Input type="color" value={hexColor} onChange={(e) => setHexColor(e.target.value)} className="p-1 h-10 w-12"/>
+                       {hoverColor && <div className="w-10 h-10 rounded-md border" style={{ backgroundColor: hoverColor }} />}
                     </div>
                 </div>
-                <Button onClick={convertColor}>{t('convert')}</Button>
-                <div className="space-y-2">
+                
+                 <div className="space-y-2">
                     <Label>{t('rgbColor')}</Label>
                     <Input readOnly value={rgbColor} />
                 </div>
@@ -270,6 +327,23 @@ export default function QuickGenerators() {
                     <Label>{t('hslColor')}</Label>
                     <Input readOnly value={hslColor} />
                 </div>
+                
+                 <Button variant="outline" onClick={() => imageInputRef.current?.click()}>
+                    <Upload className="mr-2"/>
+                    Upload Image
+                    <input type="file" ref={imageInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+                 </Button>
+
+                {imageSrc && (
+                    <div className="w-full h-auto overflow-hidden rounded-md border">
+                        <canvas
+                            ref={imageCanvasRef}
+                            className="w-full h-auto cursor-crosshair"
+                            onMouseMove={(e) => pickColor(e, 'hover')}
+                            onClick={(e) => pickColor(e, 'click')}
+                         />
+                    </div>
+                )}
             </div>
         </GeneratorCard>
 
@@ -330,5 +404,7 @@ export default function QuickGenerators() {
     </div>
   );
 }
+
+    
 
     
