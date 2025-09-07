@@ -5,37 +5,23 @@ import { fetchTechNews, saveTechNews, clearTechNews, type TechNewsOutput } from 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Newspaper, Save, Trash2 } from 'lucide-react';
+import { Newspaper, Save, Trash2, Eye } from 'lucide-react';
 import { useLanguage } from '@/hooks/use-language';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function TechNews() {
   const [fetchedNews, setFetchedNews] = useState<TechNewsOutput | null>(null);
   const [savedNews, setSavedNews] = useState<TechNewsOutput | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [newsToDisplay, setNewsToDisplay] = useState<TechNewsOutput | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { t } = useLanguage();
-
+  
   useEffect(() => {
-    setLoading(true);
-    const newsRef = doc(db, 'tech-news', 'latest');
-    const unsubscribe = onSnapshot(newsRef, (doc) => {
-      if (doc.exists()) {
-        const data = doc.data() as TechNewsOutput;
-        setSavedNews(data);
-      } else {
-        setSavedNews(null);
-      }
-      setLoading(false);
-    }, (err) => {
-      setError(t('fetchError'));
-      console.error(err);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [t]);
+    // Load saved news on initial mount to check if any exist
+    handleViewSavedNews();
+  }, []);
 
   async function handleFetchNews() {
     try {
@@ -43,6 +29,8 @@ export default function TechNews() {
       setError(null);
       const news = await fetchTechNews();
       setFetchedNews(news);
+      setNewsToDisplay(news);
+      setSavedNews(null); // Clear saved news from view
     } catch (err) {
       setError(t('fetchError'));
       console.error(err);
@@ -57,6 +45,9 @@ export default function TechNews() {
         setLoading(true);
         setError(null);
         await saveTechNews(fetchedNews);
+        // After saving, the fetched news becomes the saved news
+        setSavedNews(fetchedNews);
+        setNewsToDisplay(fetchedNews);
     } catch(err) {
         setError("Failed to save news.");
         console.error(err);
@@ -70,7 +61,9 @@ export default function TechNews() {
         setLoading(true);
         setError(null);
         await clearTechNews();
-        setFetchedNews(null); // Clear from view
+        setFetchedNews(null);
+        setSavedNews(null);
+        setNewsToDisplay(null);
     } catch (err) {
         setError("Failed to clear news.");
         console.error(err);
@@ -78,8 +71,28 @@ export default function TechNews() {
         setLoading(false);
     }
   }
-
-  const newsToDisplay = fetchedNews ?? savedNews;
+  
+  async function handleViewSavedNews() {
+    setLoading(true);
+    setError(null);
+    try {
+        const newsRef = doc(db, 'tech-news', 'latest');
+        const docSnap = await getDoc(newsRef);
+        if (docSnap.exists()) {
+            const data = docSnap.data() as TechNewsOutput;
+            setSavedNews(data);
+            setNewsToDisplay(data);
+        } else {
+            setSavedNews(null);
+            setNewsToDisplay(null);
+        }
+    } catch (err) {
+        setError("Failed to load saved news.");
+        console.error(err);
+    } finally {
+        setLoading(false);
+    }
+  }
 
   return (
     <div>
@@ -90,11 +103,15 @@ export default function TechNews() {
               <Newspaper className="mr-2" />
               {t('fetchLatestNews')}
             </Button>
+            <Button onClick={handleViewSavedNews} disabled={loading} variant="outline">
+              <Eye className="mr-2" />
+              View Saved News
+            </Button>
             <Button onClick={handleSaveNews} disabled={loading || !fetchedNews}>
               <Save className="mr-2" />
               Save News
             </Button>
-            <Button onClick={handleClearNews} disabled={loading || !savedNews} variant="outline">
+            <Button onClick={handleClearNews} disabled={loading} variant="destructive">
                 <Trash2 className="mr-2" />
                 Clear News
             </Button>
