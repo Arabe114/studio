@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, RotateCcw, Plus, Trash2, Pencil, Check } from 'lucide-react';
@@ -17,9 +17,9 @@ import { useLanguage } from '@/hooks/use-language';
 import { useStorage } from '@/hooks/use-storage';
 import { onSnapshot, addDoc, deleteDoc, updateDoc } from '@/lib/storage';
 
-type TimerMode = 'work' | 'break';
+export type TimerMode = 'work' | 'break';
 
-type Timer = {
+export type Timer = {
   id: string;
   name: string;
   workDuration: number; // in seconds
@@ -31,7 +31,6 @@ type Timer = {
 
 export default function PomodoroTimer() {
     const [timers, setTimers] = useState<Timer[]>([]);
-    const intervalRefs = useRef<Record<string, NodeJS.Timeout | null>>({});
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [editingTimer, setEditingTimer] = useState<Timer | null>(null);
     const { t } = useLanguage();
@@ -43,75 +42,10 @@ export default function PomodoroTimer() {
             const timersData = snapshot.map(doc => ({ id: doc.id, ...doc.data() } as Timer));
             setTimers(timersData);
         });
-        
         return () => {
-            Object.values(intervalRefs.current).forEach(interval => {
-                if (interval) clearInterval(interval);
-            });
             if(unsubscribe) unsubscribe();
         };
     }, [storageMode]);
-
-    // Effect to handle intervals based on timers state
-    useEffect(() => {
-      timers.forEach(timer => {
-        // Clear existing interval if timer is not active or has been removed
-        if (!timer.isActive && intervalRefs.current[timer.id]) {
-          clearInterval(intervalRefs.current[timer.id]!);
-          intervalRefs.current[timer.id] = null;
-        }
-
-        // Create interval if timer is active and no interval exists
-        if (timer.isActive && !intervalRefs.current[timer.id]) {
-          intervalRefs.current[timer.id] = setInterval(() => {
-             setTimers(currentTimers => {
-                const latestTimer = currentTimers.find(t => t.id === timer.id);
-                if (latestTimer && latestTimer.timeLeft > 0) {
-                    const newTimeLeft = latestTimer.timeLeft - 1;
-                    // Directly update DB, listener will update state
-                    updateDoc('timers', timer.id, { timeLeft: newTimeLeft });
-                    
-                    // Optimistically update local state as well for smoother UI
-                    return currentTimers.map(t => t.id === timer.id ? {...t, timeLeft: newTimeLeft} : t);
-                }
-                return currentTimers; 
-             });
-          }, 1000);
-        }
-      });
-
-      // Cleanup intervals for timers that no longer exist
-      const timerIds = new Set(timers.map(t => t.id));
-      Object.keys(intervalRefs.current).forEach(id => {
-          if (!timerIds.has(id)) {
-              clearInterval(intervalRefs.current[id]!);
-              delete intervalRefs.current[id];
-          }
-      });
-
-    }, [timers]);
-
-    // Effect to handle timer completion
-    useEffect(() => {
-        timers.forEach(async timer => {
-            if (timer.timeLeft <= 0 && timer.isActive) {
-                if (intervalRefs.current[timer.id]) {
-                    clearInterval(intervalRefs.current[timer.id]!);
-                    intervalRefs.current[timer.id] = null;
-                }
-                
-                new Audio('https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3').play();
-                const newMode = timer.mode === 'work' ? 'break' : 'work';
-                const newTimeLeft = newMode === 'work' ? timer.workDuration : timer.breakDuration;
-                
-                await updateDoc('timers', timer.id, {
-                    isActive: false, 
-                    mode: newMode,
-                    timeLeft: newTimeLeft,
-                });
-            }
-        });
-    }, [timers]);
 
 
     const toggleTimer = async (id: string) => {
@@ -142,10 +76,6 @@ export default function PomodoroTimer() {
     };
 
     const deleteTimer = async (id: string) => {
-        if (intervalRefs.current[id]) {
-            clearInterval(intervalRefs.current[id]!);
-            delete intervalRefs.current[id];
-        }
         await deleteDoc("timers", id);
     };
 
@@ -242,11 +172,11 @@ export default function PomodoroTimer() {
                         </div>
                         <div>
                             <Label htmlFor="work-duration">{t('workDuration')}</Label>
-                            <Input id="work-duration" type="number" value={editingTimer.workDuration / 60} onChange={(e) => handleDurationChange('workDuration', e.target.value)} />
+                            <Input id="work-duration" type="number" value={editingTimer.workDuration > 0 ? editingTimer.workDuration / 60 : ''} onChange={(e) => handleDurationChange('workDuration', e.target.value)} />
                         </div>
                         <div>
                             <Label htmlFor="break-duration">{t('breakDuration')}</Label>
-                            <Input id="break-duration" type="number" value={editingTimer.breakDuration / 60} onChange={(e) => handleDurationChange('breakDuration', e.target.value)} />
+                            <Input id="break-duration" type="number" value={editingTimer.breakDuration > 0 ? editingTimer.breakDuration / 60 : ''} onChange={(e) => handleDurationChange('breakDuration', e.target.value)} />
                         </div>
                         <Button type="submit"><Check className="mr-2"/>{t('saveChanges')}</Button>
                     </form>

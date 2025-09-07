@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FC } from 'react';
 import {
   LayoutDashboard,
@@ -55,6 +55,7 @@ import dynamic from 'next/dynamic';
 import { Skeleton } from './ui/skeleton';
 import DataLookup from './data-lookup';
 import { useStorage } from '@/hooks/use-storage';
+import { initializeTimerManager } from '@/lib/timer-manager';
 
 
 const DrawBoard = dynamic(() => import('@/components/draw-board'), {
@@ -105,6 +106,17 @@ export default function AppShell() {
   const { setTheme } = useTheme();
   const { t, setLanguage } = useLanguage();
   const { storageMode, setStorageMode } = useStorage();
+
+  useEffect(() => {
+    // Initialize the global timer manager once when the app shell mounts
+    const stopTimerManager = initializeTimerManager();
+    
+    // Cleanup on component unmount
+    return () => {
+      stopTimerManager();
+    }
+  }, [storageMode]); // Re-initialize if storage mode changes
+
 
   const renderModule = () => {
     switch (activeModule) {
@@ -173,7 +185,7 @@ export default function AppShell() {
             >
               <item.icon className="h-5 w-5 shrink-0 transition-transform duration-300 group-hover:rotate-12" />
               <span className={cn(
-                "truncate transition-colors group-hover:text-primary-foreground group-hover:text-shadow-neon-primary"
+                "truncate transition-colors group-hover:text-shadow-neon-primary"
                )}>
                 {t(item.labelKey)}
               </span>
