@@ -113,8 +113,8 @@ export default {
           '50%': { boxShadow: '0 0 4px hsl(var(--primary)/0.5), 0 0 10px hsl(var(--primary)/0.5), inset 0 0 10px hsl(var(--primary)/0.5)' },
         },
         'shimmer': {
-          '0%': { 'background-position': '-100%' },
-          '100%': { 'background-position': '100%' },
+          'from': { 'background-position': '-100%' },
+          'to': { 'background-position': '100%' },
         }
       },
       animation: {

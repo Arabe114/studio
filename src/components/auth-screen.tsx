@@ -97,7 +97,7 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
             </div>
 
             <div className="space-y-2">
-                <h1 className="text-3xl font-bold">Enter Access Code</h1>
+                <h1 className="text-3xl font-bold animate-shimmer bg-gradient-to-r from-primary via-white to-primary bg-[length:200%_100%] bg-clip-text text-transparent">Enter Access Code</h1>
                 <p className="text-muted-foreground">Please enter your PIN to continue.</p>
             </div>
             
