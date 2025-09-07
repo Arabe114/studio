@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -8,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, Timestamp } from 'firebase/firestore';
 import { useLanguage } from '@/hooks/use-language';
 
 
@@ -19,7 +20,7 @@ type Transaction = {
   description: string;
   amount: number;
   type: TransactionType;
-  date: string;
+  date: Date;
 };
 
 export default function BudgetTracker() {
@@ -37,11 +38,13 @@ export default function BudgetTracker() {
         const data = doc.data();
         transactionsData.push({ 
           id: doc.id, 
-          ...data,
-          date: data.date ? new Date(data.date.seconds * 1000).toLocaleDateString() : new Date().toLocaleDateString()
+          description: data.description,
+          amount: data.amount,
+          type: data.type,
+          date: data.date instanceof Timestamp ? data.date.toDate() : new Date()
         } as Transaction);
       });
-      transactionsData.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      transactionsData.sort((a,b) => b.date.getTime() - a.date.getTime());
       setTransactions(transactionsData);
     });
 
@@ -129,7 +132,7 @@ export default function BudgetTracker() {
                 <li key={transaction.id} className="flex justify-between items-center">
                   <div>
                     <p className="font-medium">{transaction.description}</p>
-                    <p className="text-sm text-muted-foreground">{transaction.date}</p>
+                    <p className="text-sm text-muted-foreground">{transaction.date.toLocaleDateString()}</p>
                   </div>
                   <p className={`font-medium ${transaction.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
                     {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toFixed(2)}
