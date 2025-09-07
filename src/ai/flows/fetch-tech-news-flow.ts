@@ -12,8 +12,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { db } from '@/lib/firebase';
-import { doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase-admin';
 
 const TechNewsOutputSchema = z.object({
   news: z
@@ -65,8 +64,8 @@ const saveTechNewsFlow = ai.defineFlow(
     },
     async (newsToSave) => {
         const plainOutput = JSON.parse(JSON.stringify(newsToSave));
-        const newsRef = doc(db, 'tech-news', 'latest');
-        await setDoc(newsRef, plainOutput);
+        const newsRef = db.collection('tech-news').doc('latest');
+        await newsRef.set(plainOutput);
     }
 );
 
@@ -80,8 +79,8 @@ const clearTechNewsFlow = ai.defineFlow(
         name: 'clearTechNewsFlow',
     },
     async () => {
-        const newsRef = doc(db, 'tech-news', 'latest');
-        await deleteDoc(newsRef);
+        const newsRef = db.collection('tech-news').doc('latest');
+        await newsRef.delete();
     }
 );
 
@@ -95,9 +94,9 @@ const viewSavedNewsFlow = ai.defineFlow(
         outputSchema: TechNewsOutputSchema.nullable(),
     },
     async () => {
-        const newsRef = doc(db, 'tech-news', 'latest');
-        const docSnap = await getDoc(newsRef);
-        if (docSnap.exists()) {
+        const newsRef = db.collection('tech-news').doc('latest');
+        const docSnap = await newsRef.get();
+        if (docSnap.exists) {
             return docSnap.data() as TechNewsOutput;
         }
         return null;
