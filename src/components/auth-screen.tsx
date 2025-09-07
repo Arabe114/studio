@@ -73,7 +73,7 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
       setIsSuccess(true);
       setTimeout(() => {
         onAuthenticated();
-      }, 1000); 
+      }, 500); 
     } else {
       setError('Invalid PIN. Please try again.');
       setPin(['', '', '', '']);

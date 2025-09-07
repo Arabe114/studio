@@ -1,15 +1,40 @@
+
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AppShell from '@/components/app-shell';
 import AuthScreen from '@/components/auth-screen';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  if (!isAuthenticated) {
-    return <AuthScreen onAuthenticated={() => setIsAuthenticated(true)} />;
-  }
+  useEffect(() => {
+    if (isAuthenticating) {
+      const timer = setTimeout(() => {
+        setIsAuthenticated(true);
+      }, 500); // Should match animation duration
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticating]);
 
-  return <AppShell />;
+  const handleAuthenticated = () => {
+    setIsAuthenticating(true);
+  };
+
+  return (
+    <div className="relative h-screen w-screen">
+      {!isAuthenticated && (
+          <div className={cn("absolute inset-0 transition-opacity duration-500", isAuthenticating ? "opacity-0" : "opacity-100")}>
+             <AuthScreen onAuthenticated={handleAuthenticated} />
+          </div>
+      )}
+      {(isAuthenticating || isAuthenticated) && (
+        <div className={cn("absolute inset-0 transition-opacity duration-500", isAuthenticating && !isAuthenticated ? "opacity-0" : "opacity-100")}>
+            <AppShell />
+        </div>
+      )}
+    </div>
+  );
 }
