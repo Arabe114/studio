@@ -34,7 +34,6 @@ import BudgetTracker from '@/components/budget-tracker';
 import AiTools from '@/components/ai-tools';
 import TechNews from '@/components/tech-news';
 import IntegrationsHub from '@/components/integrations-hub';
-import DrawBoard from '@/components/draw-board';
 import { useTheme } from 'next-themes';
 import {
   DropdownMenu,
@@ -46,6 +45,14 @@ import {
 import { Button } from './ui/button';
 import AnimatedBackground from './animated-background';
 import { useLanguage } from '@/hooks/use-language';
+import dynamic from 'next/dynamic';
+import { Skeleton } from './ui/skeleton';
+
+const DrawBoard = dynamic(() => import('@/components/draw-board'), {
+  loading: () => <Skeleton className="w-full h-full" />,
+  ssr: false,
+});
+
 
 type Module =
   | 'dashboard'
@@ -124,17 +131,12 @@ export default function AppShell() {
           isSidebarExpanded ? 'w-60' : 'w-20 items-center'
         )}
       >
-        <div
-          className={cn(
-            'mb-4 flex items-center gap-3',
-            isSidebarExpanded ? 'w-full justify-start' : 'w-10 justify-center'
-          )}
-        >
-             <div className={cn("flex h-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-neon-primary hover:shadow-lg hover:scale-105 transition-all duration-200", isSidebarExpanded ? "w-10" : "w-full")}>
-                ELN
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center">
+            <div className={cn("flex h-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-neon-primary hover:shadow-lg hover:scale-105 transition-all duration-200", isSidebarExpanded ? "w-10" : "w-full")}>
+                AIO
              </div>
              <span className={cn(
-                 "text-lg font-semibold text-primary [text-shadow:0_0_8px_hsl(var(--primary)/_0.8)] transition-opacity duration-200 ease-out",
+                 "text-lg font-semibold text-primary [text-shadow:0_0_8px_hsl(var(--primary)/_0.8)] ml-3 transition-opacity duration-200 ease-out",
                  isSidebarExpanded ? "opacity-100" : "opacity-0"
              )}>{t('eln')}</span>
         </div>
