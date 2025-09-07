@@ -115,7 +115,7 @@ export default function AppShell() {
         <div
           className={cn(
             'mb-4 flex h-10 shrink-0 items-center',
-             isSidebarExpanded ? 'justify-start' : 'justify-center'
+             isSidebarExpanded ? 'justify-start' : 'w-full justify-center'
           )}
         >
              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-neon-primary hover:shadow-lg hover:scale-105 transition-all duration-200">
@@ -123,7 +123,7 @@ export default function AppShell() {
              </div>
              <span className={cn(
                  "text-lg font-semibold text-primary [text-shadow:0_0_8px_hsl(var(--primary)/_0.8)] transition-opacity ease-out ml-3",
-                 isSidebarExpanded ? "opacity-100 duration-300 animate-in fade-in slide-in-from-left-4" : "opacity-0 duration-200"
+                 isSidebarExpanded ? "opacity-100 duration-300 animate-in fade-in slide-in-from-left-4" : "opacity-0"
              )}>{t('eln')}</span>
         </div>
 
