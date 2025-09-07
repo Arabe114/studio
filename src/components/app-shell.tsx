@@ -119,7 +119,7 @@ export default function AppShell() {
           )}
         >
              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-neon-primary hover:shadow-lg hover:scale-105 transition-all duration-200">
-                AIO
+                ELN
              </div>
              {isSidebarExpanded && <span className={cn(
                  "text-lg font-semibold text-primary [text-shadow:0_0_8px_hsl(var(--primary)/_0.8)] transition-all duration-300 ease-in-out",
