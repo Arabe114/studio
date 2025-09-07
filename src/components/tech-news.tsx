@@ -17,11 +17,6 @@ export default function TechNews() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { t } = useLanguage();
-  
-  useEffect(() => {
-    // Load saved news on initial mount to check if any exist
-    handleViewSavedNews();
-  }, []);
 
   async function handleFetchNews() {
     try {
@@ -82,6 +77,7 @@ export default function TechNews() {
             const data = docSnap.data() as TechNewsOutput;
             setSavedNews(data);
             setNewsToDisplay(data);
+            setFetchedNews(null); // Clear any fetched news from view
         } else {
             setSavedNews(null);
             setNewsToDisplay(null);
