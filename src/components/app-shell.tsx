@@ -99,17 +99,17 @@ const navItems: NavItem[] = [
   { id: 'dashboard', icon: LayoutDashboard, labelKey: 'dashboard' },
   { id: 'knowledge-graph', icon: BrainCircuit, labelKey: 'knowledgeGraph' },
   { id: 'kanban-board', icon: Kanban, labelKey: 'taskBoard' },
+  { id: 'ai-tools', icon: Cpu, labelKey: 'aiTools' },
+  { id: 'tech-news', icon: Newspaper, labelKey: 'techNews' },
+  { id: 'english-learning', icon: BookOpenCheck, labelKey: 'englishLearning' },
+  { id: 'quick-generators', icon: Zap, labelKey: 'quickGenerators' },
   { id: 'notes-editor', icon: FileText, labelKey: 'notesEditor' },
   { id: 'calendar', icon: Calendar, labelKey: 'calendar' },
   { id: 'pomodoro', icon: Timer, labelKey: 'pomodoroTimer' },
   { id: 'budget', icon: PiggyBank, labelKey: 'budgetTracker' },
   { id: 'integrations', icon: PlugZap, labelKey: 'integrationsHub' },
   { id: 'draw-board', icon: PenTool, labelKey: 'drawBoard' },
-  { id: 'quick-generators', icon: Zap, labelKey: 'quickGenerators' },
   { id: 'data-lookup', icon: DatabaseZap, labelKey: 'dataLookupTools' },
-  { id: 'english-learning', icon: BookOpenCheck, labelKey: 'englishLearning' },
-  { id: 'ai-tools', icon: Cpu, labelKey: 'aiTools' },
-  { id: 'tech-news', icon: Newspaper, labelKey: 'techNews' },
 ];
 
 export default function AppShell({ onExit }: AppShellProps) {

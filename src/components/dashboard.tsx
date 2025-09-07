@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useLanguage } from "@/hooks/use-language";
 import { useStorage } from '@/hooks/use-storage';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { BrainCircuit, CheckCircle, Circle, FileText, ListTodo, RefreshCw } from 'lucide-react';
+import { BrainCircuit, CheckCircle, Circle, FileText, ListTodo, RefreshCw, Cpu, Newspaper, BookOpenCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { onSnapshot, query, where } from '@/lib/storage';
@@ -22,7 +22,8 @@ type Module =
   | 'pomodoro'
   | 'budget'
   | 'ai-tools'
-  | 'tech-news';
+  | 'tech-news'
+  | 'english-learning';
 
 interface DashboardProps {
     setActiveModule: (module: Module) => void;
@@ -137,22 +138,46 @@ export default function Dashboard({ setActiveModule }: DashboardProps) {
                 )}
             </CardContent>
         </Card>
-
-        {/* Budget Summary */}
-        <Card className="hover:bg-accent/20 cursor-pointer" onClick={() => setActiveModule('budget')}>
+        
+        {/* AI Tools */}
+        <Card className="hover:bg-accent/20 cursor-pointer" onClick={() => setActiveModule('ai-tools')}>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
-                    {t('budgetTracker')}
+                    <Cpu /> {t('aiTools')}
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <p className="text-sm text-muted-foreground">{t('currentBalance')}</p>
-                <p className="text-3xl font-bold">${balance.toFixed(2)}</p>
+                <p className="text-sm text-muted-foreground">{t('aiToolsDescription')}</p>
+            </CardContent>
+        </Card>
+        
+        {/* English Learning */}
+        <Card className="hover:bg-accent/20 cursor-pointer" onClick={() => setActiveModule('english-learning')}>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl">
+                    <BookOpenCheck /> {t('englishLearning')}
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-sm text-muted-foreground">{t('englishLearningHubDescription')}</p>
             </CardContent>
         </Card>
 
+        {/* Tech News */}
+        <Card className="hover:bg-accent/20 cursor-pointer" onClick={() => setActiveModule('tech-news')}>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl">
+                    <Newspaper /> {t('techNews')}
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-sm text-muted-foreground">{t('getTodaysHeadlines')}</p>
+            </CardContent>
+        </Card>
+
+
         {/* Quick Access */}
-         <Card className="lg:col-span-1 hover:bg-accent/20 cursor-pointer" onClick={() => setActiveModule('knowledge-graph')}>
+         <Card className="hover:bg-accent/20 cursor-pointer" onClick={() => setActiveModule('knowledge-graph')}>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
                     <BrainCircuit /> {t('knowledgeGraph')}
@@ -162,7 +187,7 @@ export default function Dashboard({ setActiveModule }: DashboardProps) {
                 <p className="text-sm text-muted-foreground">{t('accessKnowledgeGraph')}</p>
             </CardContent>
         </Card>
-         <Card className="lg:col-span-2 hover:bg-accent/20 cursor-pointer" onClick={() => setActiveModule('notes-editor')}>
+         <Card className="hover:bg-accent/20 cursor-pointer" onClick={() => setActiveModule('notes-editor')}>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
                     <FileText /> {t('notesEditor')}
