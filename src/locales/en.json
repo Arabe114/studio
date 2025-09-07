@@ -238,5 +238,7 @@
   "exampleSentence": "Example Sentence",
   "synonyms": "Synonyms",
   "correctedSentence": "Corrected Sentence",
-  "explanation": "Explanation"
+  "explanation": "Explanation",
+  "search": "Search",
+  "entireDictionary": "Entire Dictionary"
 }
