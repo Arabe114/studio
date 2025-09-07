@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useRef, useMemo } from 'react';
@@ -16,7 +17,7 @@ interface ForceGraphProps {
   repelStrength: number;
   linkDistance: number;
   centerForce: boolean;
-  centerView?: boolean;
+  nodeToCenterId?: string | null;
   onCenterViewComplete?: () => void;
 }
 
@@ -32,7 +33,7 @@ export default function ForceGraph({
   repelStrength,
   linkDistance,
   centerForce,
-  centerView,
+  nodeToCenterId,
   onCenterViewComplete
 }: ForceGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -54,22 +55,33 @@ export default function ForceGraph({
     let height = container.clientHeight;
 
     const color = d3.scaleOrdinal(d3.schemeCategory10);
-
-    const simulation = (simulationRef.current = d3
-      .forceSimulation<Node>(nodes)
-      .force('link', d3.forceLink<Node, Link>(links).id(d => d.id).distance(linkDistance))
-      .force('charge', d3.forceManyBody().strength(repelStrength))
-      .force('x', d3.forceX(width / 2).strength(centerForce ? 0.1 : 0))
-      .force('y', d3.forceY(height / 2).strength(centerForce ? 0.1 : 0)));
     
-    if (centerForce) {
-      simulation.force('center', d3.forceCenter(width / 2, height / 2));
+    // Initialize simulation if it doesn't exist
+    if (!simulationRef.current) {
+        simulationRef.current = d3
+          .forceSimulation<Node>()
+          .force('link', d3.forceLink<Node, Link>().id(d => d.id))
+          .force('charge', d3.forceManyBody())
+          .force('x', d3.forceX(width / 2))
+          .force('y', d3.forceY(height / 2));
+          
+        if (centerForce) {
+            simulationRef.current.force('center', d3.forceCenter(width / 2, height / 2));
+        }
     }
+    
+    const simulation = simulationRef.current;
+    
+    // Update forces
+    simulation.nodes(nodes);
+    (simulation.force('link') as d3.ForceLink<Node, Link>).links(links).distance(linkDistance);
+    (simulation.force('charge') as d3.ForceManyBody<Node>).strength(repelStrength);
+    (simulation.force('x') as d3.ForceX<Node>).x(width / 2).strength(centerForce ? 0.1 : 0);
+    (simulation.force('y') as d3.ForceY<Node>).y(height / 2).strength(centerForce ? 0.1 : 0);
 
-    svg.selectAll('.links, .nodes, .labels').remove();
-    const linkG = svg.append('g').attr('class', 'links');
-    const nodeG = svg.append('g').attr('class', 'nodes');
-    const labelG = svg.append('g').attr('class', 'labels');
+    const linkG = svg.selectAll('.links').data([null]).join('g').attr('class', 'links');
+    const nodeG = svg.selectAll('.nodes').data([null]).join('g').attr('class', 'nodes');
+    const labelG = svg.selectAll('.labels').data([null]).join('g').attr('class', 'labels');
 
     const link = linkG
       .selectAll('line')
@@ -82,72 +94,71 @@ export default function ForceGraph({
     const nodeGroups = nodeG
       .selectAll('g')
       .data(nodes, d => d.id)
-      .join('g')
-      .on('click', (event, d) => {
-        event.stopPropagation();
-        onNodeClick(d);
-      })
-      .call(drag(simulation));
-      
-    // Create a circular clip path for images
-    svg.append('defs')
-      .selectAll('clipPath')
-      .data(nodes.filter(n => n.imageUrl))
-      .join('clipPath')
-      .attr('id', d => `clip-${d.id.replace(/[^a-zA-Z0-9]/g, '-')}`)
-      .append('circle')
-      .attr('r', IMAGE_NODE_SIZE / 2);
+      .join(
+          enter => {
+            const g = enter.append('g');
+            g.on('click', (event, d) => {
+                event.stopPropagation();
+                onNodeClick(d);
+            }).call(drag(simulation));
+            
+            // Create a circular clip path for images
+            svg.append('defs')
+              .selectAll('clipPath')
+              .data(nodes.filter(n => n.imageUrl))
+              .join('clipPath')
+              .attr('id', d => `clip-${d.id.replace(/[^a-zA-Z0-9]/g, '-')}`)
+              .append('circle')
+              .attr('r', IMAGE_NODE_SIZE / 2);
 
-    // Regular circle nodes
-    nodeGroups.filter(d => !d.imageUrl && !d.html)
-      .append('circle')
-      .attr('r', NODE_RADIUS)
-      .attr('fill', d => color(d.group.toString()));
+            // Regular circle nodes
+            g.filter(d => !d.imageUrl && !d.html)
+              .append('circle')
+              .attr('r', NODE_RADIUS)
+              .attr('fill', d => color(d.group.toString()));
 
-    // Image nodes
-    const imageNodes = nodeGroups.filter(d => !!d.imageUrl);
-    
-    imageNodes.append('circle') // Background/border circle
-        .attr('r', IMAGE_NODE_SIZE / 2 + 2)
-        .attr('fill', 'hsl(var(--card))');
+            // Image nodes
+            const imageNodes = g.filter(d => !!d.imageUrl);
+            imageNodes.append('circle') // Background/border circle
+                .attr('r', IMAGE_NODE_SIZE / 2 + 2)
+                .attr('fill', 'hsl(var(--card))');
+            imageNodes.append('image')
+              .attr('xlink:href', d => d.imageUrl!)
+              .attr('width', IMAGE_NODE_SIZE)
+              .attr('height', IMAGE_NODE_SIZE)
+              .attr('x', -IMAGE_NODE_SIZE / 2)
+              .attr('y', -IMAGE_NODE_SIZE / 2)
+              .attr('clip-path', d => `url(#clip-${d.id.replace(/[^a-zA-Z0-9]/g, '-')})`);
 
-    imageNodes.append('image')
-      .attr('xlink:href', d => d.imageUrl!)
-      .attr('width', IMAGE_NODE_SIZE)
-      .attr('height', IMAGE_NODE_SIZE)
-      .attr('x', -IMAGE_NODE_SIZE / 2)
-      .attr('y', -IMAGE_NODE_SIZE / 2)
-      .attr('clip-path', d => `url(#clip-${d.id.replace(/[^a-zA-Z0-9]/g, '-')})`);
-
-    // HTML nodes
-    const htmlNodes = nodeGroups.filter(d => !!d.html);
-    htmlNodes.append('foreignObject')
-        .attr('width', 180)
-        .attr('height', 80)
-        .attr('x', -90)
-        .attr('y', -40)
-        .html(d => d.html!)
-        .on('mouseover', function() {
-            d3.select(this).style('cursor', 'pointer');
-        })
-        .on('mouseout', function() {
-            d3.select(this).style('cursor', 'default');
-        });
-
-      
-    // Selection/Highlight rectangle for all nodes
-    nodeGroups.append('rect')
-        .attr('class', 'selection-highlight')
-        .attr('width', d => d.html ? 184 : IMAGE_NODE_SIZE + 4)
-        .attr('height', d => d.html ? 84 : IMAGE_NODE_SIZE + 4)
-        .attr('x', d => d.html ? -92 : -IMAGE_NODE_SIZE/2 - 2)
-        .attr('y', d => d.html ? -42 : -IMAGE_NODE_SIZE/2 - 2)
-        .attr('rx', 8)
-        .attr('ry', 8)
-        .attr('fill', 'none')
-        .attr('stroke-width', 3)
-        .attr('stroke', 'transparent');
-
+            // HTML nodes
+            const htmlNodes = g.filter(d => !!d.html);
+            htmlNodes.append('foreignObject')
+                .attr('width', 180)
+                .attr('height', 80)
+                .attr('x', -90)
+                .attr('y', -40)
+                .html(d => d.html!)
+                .on('mouseover', function() { d3.select(this).style('cursor', 'pointer'); })
+                .on('mouseout', function() { d3.select(this).style('cursor', 'default'); });
+              
+            // Selection/Highlight rectangle for all nodes
+            g.append('rect')
+                .attr('class', 'selection-highlight')
+                .attr('width', d => d.html ? 184 : IMAGE_NODE_SIZE + 4)
+                .attr('height', d => d.html ? 84 : IMAGE_NODE_SIZE + 4)
+                .attr('x', d => d.html ? -92 : -IMAGE_NODE_SIZE/2 - 2)
+                .attr('y', d => d.html ? -42 : -IMAGE_NODE_SIZE/2 - 2)
+                .attr('rx', 8).attr('ry', 8).attr('fill', 'none')
+                .attr('stroke-width', 3).attr('stroke', 'transparent');
+                
+            return g;
+          },
+          update => {
+              // Update HTML content if it has changed
+              update.select('foreignObject').html(d => d.html!);
+              return update;
+          }
+      );
 
     const labels = labelG
       .selectAll('text')
@@ -159,13 +170,15 @@ export default function ForceGraph({
       .attr('fill', 'hsl(var(--foreground))')
       .text(d => d.id);
       
-    const zoomBehavior = d3.zoom<SVGSVGElement, unknown>().on('zoom', (event) => {
-        d3.selectAll('.nodes, .links, .labels').attr('transform', event.transform);
-    });
-    zoomRef.current = zoomBehavior;
-    
-    svg.call(zoomBehavior as any)
-       .on('click', () => onNodeClick(null));
+    if (!zoomRef.current) {
+        const zoomBehavior = d3.zoom<SVGSVGElement, unknown>().on('zoom', (event) => {
+            d3.selectAll('.nodes, .links, .labels').attr('transform', event.transform);
+        });
+        zoomRef.current = zoomBehavior;
+        svg.call(zoomBehavior as any)
+           .on('click', () => onNodeClick(null));
+    }
+
 
     simulation.on('tick', () => {
       link
@@ -181,6 +194,8 @@ export default function ForceGraph({
         .attr('x', d => d.x!)
         .attr('y', d => d.y!);
     });
+    
+    simulation.alpha(1).restart();
     
     const resizeObserver = new ResizeObserver(entries => {
       for (let entry of entries) {
@@ -199,7 +214,8 @@ export default function ForceGraph({
     resizeObserver.observe(container);
 
     return () => {
-      simulation.stop();
+      // simulation.stop(); // Don't stop simulation completely, just detach tick handler
+      simulation.on('tick', null);
       resizeObserver.disconnect();
     };
   }, [nodes, links, onNodeClick, linkDistance, repelStrength, centerForce]);
@@ -231,38 +247,31 @@ export default function ForceGraph({
     }
   }, [selectedNodeId, linkingNodeIds]);
 
-  // Effect for centering view
+  // Effect for centering view on a specific node
   useEffect(() => {
-    if (!centerView || !svgRef.current || !zoomRef.current || !nodes.length) return;
+    if (!nodeToCenterId || !svgRef.current || !zoomRef.current) return;
 
     const svg = d3.select(svgRef.current);
     const container = svg.node()!.parentElement!;
     const width = container.clientWidth;
     const height = container.clientHeight;
 
-    const xExtent = d3.extent(nodes, d => d.x);
-    const yExtent = d3.extent(nodes, d => d.y);
-
-    if (xExtent[0] === undefined || xExtent[1] === undefined || yExtent[0] === undefined || yExtent[1] === undefined) {
-      return;
-    }
+    const nodeToCenter = nodes.find(n => n.id === nodeToCenterId);
+    if (!nodeToCenter || nodeToCenter.x === undefined || nodeToCenter.y === undefined) return;
     
-    const boundsWidth = xExtent[1] - xExtent[0];
-    const boundsHeight = yExtent[1] - yExtent[0];
-    const boundsCenterX = xExtent[0] + boundsWidth / 2;
-    const boundsCenterY = yExtent[0] + boundsHeight / 2;
-
-    const scale = Math.min(width / boundsWidth, height / boundsHeight) * 0.8;
     const transform = d3.zoomIdentity
-        .translate(width / 2 - scale * boundsCenterX, height / 2 - scale * boundsCenterY)
-        .scale(scale);
+        .translate(width / 2, height / 2)
+        .scale(1.2) // Zoom in slightly on the node
+        .translate(-nodeToCenter.x, -nodeToCenter.y);
 
-    svg.transition().duration(750).call(zoomRef.current.transform, transform);
+    svg.transition().duration(750).call(zoomRef.current.transform, transform)
+       .on("end", () => {
+           if (onCenterViewComplete) {
+              onCenterViewComplete();
+           }
+       });
     
-    if (onCenterViewComplete) {
-      onCenterViewComplete();
-    }
-  }, [centerView, onCenterViewComplete, nodes]);
+  }, [nodeToCenterId, onCenterViewComplete, nodes]);
 
 
   function drag(simulation: d3.Simulation<Node, Link>) {
@@ -280,7 +289,7 @@ export default function ForceGraph({
       if (onNodeDrag) {
           onNodeDrag(d.id, { x: d.x!, y: d.y! });
       }
-      // Commenting this out to keep node fixed after drag
+      // To keep node fixed after drag
       // d.fx = null;
       // d.fy = null;
     }

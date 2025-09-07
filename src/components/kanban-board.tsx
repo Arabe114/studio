@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -47,16 +48,23 @@ const statusToGroup: Record<TaskStatus, number> = {
   'in-progress': 2,
   'done': 3,
 };
-const statusToIcon: Record<TaskStatus, React.ReactNode> = {
-    'todo': <Circle className="h-4 w-4 text-muted-foreground" />,
-    'in-progress': <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />,
-    'done': <CheckCircle className="h-4 w-4 text-green-500" />,
+const statusToIcon: Record<TaskStatus, string> = {
+    'todo': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--muted-foreground))" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><circle cx="12" cy="12" r="10"></circle></svg>`,
+    'in-progress': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>`,
+    'done': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`,
 };
 const statusToColor: Record<TaskStatus, string> = {
     'todo': 'hsl(var(--border))',
     'in-progress': 'hsl(var(--primary))',
     'done': 'hsl(var(--ring))',
 }
+
+const statusToIconComponent: Record<TaskStatus, React.ReactNode> = {
+    'todo': <Circle className="h-4 w-4 text-muted-foreground" />,
+    'in-progress': <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />,
+    'done': <CheckCircle className="h-4 w-4 text-green-500" />,
+};
+
 
 export default function KanbanBoard() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -66,7 +74,7 @@ export default function KanbanBoard() {
   const [firstLinkNode, setFirstLinkNode] = useState<GraphNode | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [sheetTask, setSheetTask] = useState<Partial<Task> | null>(null);
-  const [centerView, setCenterView] = useState(false);
+  const [nodeToCenterId, setNodeToCenterId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('flow');
   const { t } = useLanguage();
   const { storageMode } = useStorage();
@@ -94,9 +102,9 @@ export default function KanbanBoard() {
       fx: task.x,
       fy: task.y,
       html: `
-        <div class="p-3 rounded-lg border-2" style="border-color: ${statusToColor[task.status]}; background-color: hsl(var(--card)); color: hsl(var(--card-foreground)); width: 180px; height: 80px;">
-          <div class="font-bold truncate text-sm flex items-center gap-2">${statusToIcon[task.status]} ${task.title}</div>
-          <div class="text-xs text-muted-foreground truncate mt-1">${task.description}</div>
+        <div class="p-3 rounded-lg border-2" style="border-color: ${statusToColor[task.status]}; background-color: hsl(var(--card)); color: hsl(var(--card-foreground)); width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center;">
+          <div style="font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; display: flex; align-items: center; gap: 8px;">${statusToIcon[task.status]} ${task.title}</div>
+          <div style="font-size: 12px; color: hsl(var(--muted-foreground)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 4px;">${task.description}</div>
         </div>
       `
     }));
@@ -176,7 +184,8 @@ export default function KanbanBoard() {
     if (sheetTask.id) { // Editing existing task
         await updateDoc('tasks', sheetTask.id, taskData);
     } else { // Creating new task
-        await addDoc('tasks', taskData);
+        const docRef = await addDoc('tasks', taskData);
+        setNodeToCenterId(docRef.id);
     }
     
     setIsSheetOpen(false);
@@ -198,15 +207,33 @@ export default function KanbanBoard() {
     await deleteDoc('tasks', taskIdToDelete);
     
     // Remove this task from other tasks' dependency lists
-    const batch: Promise<any>[] = [];
+    const batch = writeBatch();
     tasks.forEach(task => {
         if (task.dependencies.includes(taskIdToDelete)) {
             const newDeps = task.dependencies.filter(dep => dep !== taskIdToDelete);
-            batch.push(updateDoc('tasks', task.id, { dependencies: newDeps }));
+            const taskRef = { collection: 'tasks', id: task.id }; // Simplified ref for batch
+            (batch as any).update(taskRef, { dependencies: newDeps }); // This is pseudo-code for a generic batch
         }
     });
     
-    await Promise.all(batch);
+    // For local storage, this requires manual implementation. For firebase, it works.
+    // The provided writeBatch is a mock for local.
+    const commitBatch = (batch as any).commit ? (batch as any).commit() : Promise.all((batch as any));
+    await commitBatch;
+
+    // Fallback for local storage batching mock
+    if (storageMode === 'local') {
+      const updatePromises: Promise<any>[] = [];
+      tasks.forEach(task => {
+          if (task.dependencies.includes(taskIdToDelete)) {
+              const newDeps = task.dependencies.filter(dep => dep !== taskIdToDelete);
+              updatePromises.push(updateDoc('tasks', task.id, { dependencies: newDeps }));
+          }
+      });
+      await Promise.all(updatePromises);
+    }
+
+    
     setIsSheetOpen(false);
     setSelectedTask(null);
     setSheetTask(null);
@@ -222,8 +249,8 @@ export default function KanbanBoard() {
             linkingNodeIds={isLinkingMode && firstLinkNode ? [firstLinkNode.id] : []}
             repelStrength={-1500}
             linkDistance={250}
-            centerView={centerView}
-            onCenterViewComplete={() => setCenterView(false)}
+            nodeToCenterId={nodeToCenterId}
+            onCenterViewComplete={() => setNodeToCenterId(null)}
             centerForce={false}
         />
       </Card>
@@ -236,7 +263,7 @@ export default function KanbanBoard() {
               {columns.map(status => (
                   <div key={status} className="bg-card/50 rounded-lg p-4 flex flex-col">
                       <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                        {statusToIcon[status]}
+                        {statusToIconComponent[status]}
                         {statusToTitle[status]}
                         <span className="text-sm font-normal text-muted-foreground ml-2">
                             ({tasks.filter(t => t.status === status).length})
@@ -274,7 +301,7 @@ export default function KanbanBoard() {
                     >
                         <LinkIcon /> {isLinkingMode ? (firstLinkNode ? t('selectTarget') : t('selectSource')) : t('linkTasks')}
                     </Button>
-                    <Button variant="outline" onClick={() => setCenterView(true)}><LocateFixed /> {t('centerView')}</Button>
+                    <Button variant="outline" onClick={() => setNodeToCenterId('__center_all__')}><LocateFixed /> {t('centerView')}</Button>
                 </>
             )}
             <Button variant="outline" onClick={() => setViewMode(viewMode === 'flow' ? 'board' : 'flow')}>
