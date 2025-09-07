@@ -24,10 +24,8 @@ export default function TechNews() {
       if (doc.exists()) {
         const data = doc.data() as TechNewsOutput;
         setSavedNews(data);
-        setFetchedNews(data); // Also populate the main view with saved news
       } else {
         setSavedNews(null);
-        setFetchedNews(null);
       }
       setLoading(false);
     }, (err) => {
@@ -81,7 +79,7 @@ export default function TechNews() {
     }
   }
 
-  const newsToDisplay = fetchedNews;
+  const newsToDisplay = fetchedNews ?? savedNews;
 
   return (
     <div>
