@@ -144,13 +144,12 @@ export default function AppShell() {
         )}
       >
         <div className={cn("flex h-10 mb-4 items-center", 'justify-start')}>
-            <div className={cn("flex h-10 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-neon-primary hover:shadow-lg hover:scale-105 transition-all duration-200", "w-10")}>
+             <div className="flex h-10 items-center justify-center w-10 animate-shimmer bg-gradient-to-r from-primary via-white to-primary bg-[length:200%_100%] rounded-lg text-sm font-bold text-transparent bg-clip-text">
                 ELN
              </div>
-             <span className={cn(
-                 "text-lg font-semibold text-white [text-shadow:0_0_4px_#fff,0_0_10px_hsl(var(--primary))] ml-3 transition-opacity duration-200 ease-out",
-                 "opacity-100"
-             )}>{t('allInOne')}</span>
+             <span className="ml-3 text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary via-white to-primary bg-[length:200%_100%] animate-shimmer">
+                 {t('allInOne')}
+             </span>
         </div>
 
         <div className="flex flex-grow flex-col gap-2 w-full">

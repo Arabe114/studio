@@ -111,6 +111,10 @@ export default {
         'neon-border-pulse': {
           '0%, 100%': { boxShadow: '0 0 2px hsl(var(--primary)/0.3), 0 0 5px hsl(var(--primary)/0.3), inset 0 0 5px hsl(var(--primary)/0.3)' },
           '50%': { boxShadow: '0 0 4px hsl(var(--primary)/0.5), 0 0 10px hsl(var(--primary)/0.5), inset 0 0 10px hsl(var(--primary)/0.5)' },
+        },
+        'shimmer': {
+          '0%': { 'background-position': '-100%' },
+          '100%': { 'background-position': '100%' },
         }
       },
       animation: {
@@ -120,6 +124,7 @@ export default {
         'success-pop': 'success-pop 0.3s ease-out',
         'neon-pulse': 'neon-pulse 4s ease-in-out infinite',
         'neon-border-pulse': 'neon-border-pulse 3s ease-in-out infinite',
+        'shimmer': 'shimmer 2s linear infinite'
       },
       boxShadow: {
         'neon-primary': '0 0 8px hsl(var(--primary) / 0.5), 0 0 12px hsl(var(--primary) / 0.5)',
