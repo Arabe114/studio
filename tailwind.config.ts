@@ -1,4 +1,5 @@
 import type {Config} from 'tailwindcss';
+import plugin from 'tailwindcss/plugin';
 
 export default {
   darkMode: ['class'],
@@ -102,8 +103,21 @@ export default {
       boxShadow: {
         'neon-primary': '0 0 8px hsl(var(--primary) / 0.5)',
         'neon-accent': '0 0 8px hsl(var(--accent) / 0.5)',
+      },
+      textShadow: {
+        'neon-primary': '0 0 8px hsl(var(--primary) / 0.8)',
       }
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [
+    require('tailwindcss-animate'),
+    plugin(function({ theme, addUtilities }) {
+      const newUtilities = {
+        '.text-shadow-neon-primary': {
+          textShadow: theme('textShadow.neon-primary'),
+        },
+      }
+      addUtilities(newUtilities)
+    })
+  ],
 } satisfies Config;

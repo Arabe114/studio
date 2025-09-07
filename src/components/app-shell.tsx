@@ -120,7 +120,7 @@ export default function AppShell() {
             {t('eln')}
           </div>
            {isSidebarExpanded && (
-             <span className="ml-3 text-lg font-semibold">{t('eln')}</span>
+             <span className="ml-3 text-lg font-semibold text-primary animate-in fade-in slide-in-from-left-4 duration-500 [text-shadow:0_0_8px_hsl(var(--primary)/_0.8)]">{t('eln')}</span>
            )}
         </div>
 
