@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -77,13 +78,62 @@ const toolCategories = [
     category: 'AI Presentations & Documents',
     tools: [
       { name: 'Beautiful.AI', link: 'https://www.beautiful.ai/', description: 'AI presentation maker for stunning slides.' },
-      { name: 'Gamma', link: 'https://gamma.app/', description: 'A new medium for presenting ideas, powered by AI.' },
       { name: 'Pitch', link: 'https://pitch.com/', description: 'Collaborative presentation software with AI features.' },
       { name: 'Plus', link: 'https://www.plusdocs.com/', description: 'Create Google Slides presentations with AI.' },
       { name: 'PopAi', link: 'https://www.popai.pro/', description: 'AI-powered reading and writing assistant.' },
       { name: 'Presentation.AI', link: 'https://presentation.ai/', description: 'Create presentations in seconds with AI.' },
       { name: 'Slidesgo', link: 'https://slidesgo.com/ai-presentations', description: 'AI presentation maker from the creators of Freepik.' },
       { name: 'Tome', link: 'https://tome.app/', description: 'The AI-powered storytelling format for work and ideas.' },
+    ],
+  },
+  {
+    category: 'AI Website & Landing Page Builders',
+    tools: [
+      { name: 'Durable', link: 'https://durable.co', description: 'Generates a complete business website with a CRM in under a minute.' },
+      { name: 'Hocoos', link: 'https://hocoos.com', description: 'Uses a guided, question-based process to create a tailored website.' },
+      { name: 'Lovable', link: 'https://lovable.ai', description: 'A prompt-based builder focused on creating professional, multi-page websites quickly.' },
+      { name: 'Hostinger AI Website Builder', link: 'https://www.hostinger.com/website-builder', description: 'An affordable, all-in-one package that generates a full site from a description.' },
+      { name: 'GoDaddy AI Website Builder', link: 'https://www.godaddy.com/websites/website-builder', description: 'Generates an industry-specific website integrated into GoDaddy\'s ecosystem.' },
+      { name: 'Wix ADI (Artificial Design Intelligence)', link: 'https://www.wix.com/adi-website-builder', description: 'Builds a custom Wix website based on your answers to a series of questions.' },
+      { name: 'Pineapple AI', link: 'https://pineapplebuilder.com', description: 'A fast and simple builder for creating clean, modern websites from a prompt.' },
+      { name: 'B12', link: 'https://www.b12.io', description: 'A hybrid service that uses AI to draft a website, which is then refined by human design experts.' },
+      { name: 'Gamma.app', link: 'https://gamma.app', description: 'Creates beautiful, interactive one-page websites and landing pages from a single prompt.' },
+      { name: 'Rollout', link: 'https://www.rollout.com', description: 'An AI-driven builder with a strong focus on creating visually stunning websites.' },
+      { name: 'Siter.io', link: 'https://siter.io', description: 'An extremely fast AI builder known for generating clean, minimalist websites from a text prompt.' },
+      { name: 'Pagemaker', link: 'https://www.pagemaker.io', description: 'A mobile-first AI landing page builder for high-converting e-commerce campaigns.' },
+    ],
+  },
+  {
+    category: 'AI UI, Web & Full-Stack App Builders',
+    tools: [
+      { name: '10Web AI Builder', link: 'https://10web.io', description: 'Creates or replicates any website on the WordPress platform using AI.' },
+      { name: 'Framer AI', link: 'https://www.framer.com/ai', description: 'A professional design tool that generates complete, interactive websites from a text prompt.' },
+      { name: 'Base44 (Acquired by Wix)', link: 'https://www.base44.com', description: 'An AI platform that builds full-stack web applications from a text description.' },
+      { name: 'Capacity', link: 'https://www.capacity.com', description: 'A no-code tool that generates complete, working web applications from an idea.' },
+      { name: 'Mocha', link: 'https://www.mocha.so', description: 'A prompt-based, no-code builder for quickly turning ideas into simple web applications.' },
+      { name: 'Debuild', link: 'https://debuild.app', description: 'A low-code AI tool that generates React components and SQL logic to rapidly build web apps.' },
+      { name: 'Relate', link: 'https://www.relate.so', description: 'An AI tool that generates data-driven web applications like internal tools and dashboards.' },
+      { name: 'Yakk.ai', link: 'https://yakk.ai', description: 'An AI platform for creating embeddable micro-apps and interactive widgets.' },
+    ],
+  },
+  {
+    category: 'AI Mobile App Builders',
+    tools: [
+      { name: 'vibecode', link: 'https://www.vibecode.com', description: 'A dedicated platform for creating native mobile apps, primarily for iOS, directly from a text prompt.' },
+      { name: 'Create.xyz', link: 'https://www.create.xyz', description: 'A low-code platform that uses AI to build web apps, mobile apps, and backend services.' },
+      { name: 'FlutterFlow AI Gen', link: 'https://flutterflow.io', description: 'An AI feature that generates pages and layouts for native iOS and Android apps.' },
+    ],
+  },
+  {
+    category: 'AI Design & Developer Tools',
+    tools: [
+      { name: 'V0', link: 'https://v0.dev', description: 'A tool by Vercel for developers that generates React UI component code from a text prompt.' },
+      { name: 'Make-Real.ai', link: 'https://makereal.tldraw.com', description: 'An AI tool that converts drawings, sketches, and wireframes into functional code.' },
+      { name: 'Uizard (Autodesigner)', link: 'https://uizard.io/autodesigner', description: 'An AI-powered feature that generates multi-screen mockups and UI kits for apps.' },
+      { name: 'Galileo AI', link: 'https://www.usegalileo.ai', description: 'A "text-to-UI" tool that generates high-fidelity, editable designs in Figma from a prompt.' },
+      { name: 'Form.new', link: 'https://www.form.new', description: 'An AI builder that creates complex forms, surveys, and quizzes just by describing your goal.' },
+      { name: 'Magician (for Figma)', link: 'https://magician.design', description: 'An AI design assistant plugin for Figma that generates icons, images, and copy.' },
+      { name: 'Anima App', link: 'https://www.animaapp.com', description: 'A tool that converts designs from Figma or Adobe XD into developer-ready code.' },
     ],
   },
   {
