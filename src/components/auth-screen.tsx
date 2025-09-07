@@ -7,7 +7,7 @@ import { Input } from './ui/input';
 import { useLanguage } from '@/hooks/use-language';
 import AnimatedBackground from './animated-background';
 import { cn } from '@/lib/utils';
-import { Lock } from 'lucide-react';
+import { Lock, LockOpen } from 'lucide-react';
 
 export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
   const [pin, setPin] = useState(['', '', '', '']);
@@ -92,8 +92,17 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
                 isSuccess && "animate-success-pop",
                 "before:absolute before:inset-0 before:rounded-xl before:bg-glow before:opacity-0 before:transition-opacity hover:before:opacity-100"
             )}>
-            <div className="mx-auto w-fit rounded-full bg-primary/10 p-4 border border-primary/20">
-                <Lock className="h-8 w-8 text-primary" />
+            <div className={cn(
+                "mx-auto w-fit rounded-full p-4 transition-colors duration-300",
+                isSuccess
+                  ? "bg-green-500/10 border border-green-500/20"
+                  : "bg-primary/10 border border-primary/20"
+            )}>
+                {isSuccess ? (
+                    <LockOpen className="h-8 w-8 text-green-500" />
+                ) : (
+                    <Lock className="h-8 w-8 text-primary" />
+                )}
             </div>
 
             <div className="space-y-2">
@@ -119,10 +128,10 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
                     onKeyDown={(e) => handleKeyDown(index, e)}
                     onPaste={index === 0 ? handlePaste : undefined}
                     className={cn(
-                        "h-16 w-14 text-center text-4xl font-mono transition-shadow duration-300 shadow-neon-primary",
+                        "h-16 w-14 text-center text-4xl font-mono transition-all duration-300 shadow-neon-primary",
                         "focus-visible:ring-primary",
                         error && "border-destructive focus-visible:ring-destructive shadow-none",
-                        isSuccess && "border-green-500"
+                        isSuccess && "border-green-500 shadow-none"
                     )}
                     inputMode="numeric"
                     autoComplete="one-time-code"
