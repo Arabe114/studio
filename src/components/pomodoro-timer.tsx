@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -36,11 +37,15 @@ export default function PomodoroTimer() {
     const { t } = useLanguage();
     const { storageMode } = useStorage();
 
+    // Listener for DB changes
     useEffect(() => {
         const unsubscribe = onSnapshot('timers', (snapshot) => {
             const timersData = snapshot.map(doc => ({ id: doc.id, ...doc.data() } as Timer));
             setTimers(timersData);
         });
+        
+        // This cleanup runs when the component unmounts from the page completely,
+        // but not when navigating between modules.
         return () => {
              Object.values(intervalRefs.current).forEach(interval => {
                 if (interval) clearInterval(interval);
@@ -49,48 +54,59 @@ export default function PomodoroTimer() {
         };
     }, [storageMode]);
 
-    // Effect to handle countdown
+    // Effect to handle intervals based on timers state
     useEffect(() => {
-        timers.forEach(timer => {
-            if (timer.isActive) {
-                if (!intervalRefs.current[timer.id]) {
-                    intervalRefs.current[timer.id] = setInterval(async () => {
-                        // We need to fetch the latest timer data from state inside interval
-                        setTimers(currentTimers => {
-                            const currentTimer = currentTimers.find(t => t.id === timer.id);
-                            if (currentTimer && currentTimer.timeLeft > 0) {
-                                const newTimeLeft = currentTimer.timeLeft - 1;
-                                updateDoc('timers', timer.id, { timeLeft: newTimeLeft });
-                            }
-                            return currentTimers;
-                        })
-                    }, 1000);
+      timers.forEach(timer => {
+        // Clear existing interval if timer is not active or has been removed
+        if (!timer.isActive && intervalRefs.current[timer.id]) {
+          clearInterval(intervalRefs.current[timer.id]!);
+          intervalRefs.current[timer.id] = null;
+        }
+
+        // Create interval if timer is active and no interval exists
+        if (timer.isActive && !intervalRefs.current[timer.id]) {
+          intervalRefs.current[timer.id] = setInterval(() => {
+             // Use a function to get the latest state to avoid stale closures
+             setTimers(currentTimers => {
+                const latestTimer = currentTimers.find(t => t.id === timer.id);
+                if (latestTimer && latestTimer.timeLeft > 0) {
+                    updateDoc('timers', timer.id, { timeLeft: latestTimer.timeLeft - 1 });
                 }
-            } else {
-                if (intervalRefs.current[timer.id]) {
-                    clearInterval(intervalRefs.current[timer.id]!);
-                    intervalRefs.current[timer.id] = null;
-                }
-            }
-        });
-        
-        return () => {
-             Object.values(intervalRefs.current).forEach(interval => {
-                if (interval) clearInterval(interval);
-            });
-        };
-    }, [timers]); // Rerun when any timer is toggled
+                return currentTimers; // Return unchanged state to avoid re-render from here
+             });
+          }, 1000);
+        }
+      });
+
+      // Cleanup intervals for timers that no longer exist
+      const timerIds = new Set(timers.map(t => t.id));
+      Object.keys(intervalRefs.current).forEach(id => {
+          if (!timerIds.has(id)) {
+              clearInterval(intervalRefs.current[id]!);
+              delete intervalRefs.current[id];
+          }
+      });
+
+    }, [timers]);
 
     // Effect to handle timer completion
     useEffect(() => {
         timers.forEach(async timer => {
-            if (timer.timeLeft === 0 && timer.isActive) {
+            if (timer.timeLeft <= 0 && timer.isActive) {
+                // Stop the interval for this timer immediately
+                if (intervalRefs.current[timer.id]) {
+                    clearInterval(intervalRefs.current[timer.id]!);
+                    intervalRefs.current[timer.id] = null;
+                }
+                
                 new Audio('https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3').play();
                 const newMode = timer.mode === 'work' ? 'break' : 'work';
                 const newTimeLeft = newMode === 'work' ? timer.workDuration : timer.breakDuration;
                 
+                // Update the timer to switch mode and stop it.
+                // The user can restart it for the new session.
                 await updateDoc('timers', timer.id, {
-                    isActive: false, // Stop the timer
+                    isActive: false, 
                     mode: newMode,
                     timeLeft: newTimeLeft,
                 });
@@ -129,7 +145,7 @@ export default function PomodoroTimer() {
     const deleteTimer = async (id: string) => {
         if (intervalRefs.current[id]) {
             clearInterval(intervalRefs.current[id]!);
-            intervalRefs.current[id] = null;
+            delete intervalRefs.current[id];
         }
         await deleteDoc("timers", id);
     };
@@ -138,13 +154,14 @@ export default function PomodoroTimer() {
         e.preventDefault();
         if (!editingTimer) return;
         
-        const workDuration = editingTimer.workDuration;
+        const workDurationInSeconds = Number(editingTimer.workDuration);
+        const breakDurationInSeconds = Number(editingTimer.breakDuration);
 
         await updateDoc('timers', editingTimer.id, {
             name: editingTimer.name,
-            workDuration: workDuration,
-            breakDuration: editingTimer.breakDuration,
-            timeLeft: workDuration, // Reset time on edit
+            workDuration: workDurationInSeconds,
+            breakDuration: breakDurationInSeconds,
+            timeLeft: workDurationInSeconds, // Reset time on edit
             isActive: false,
             mode: 'work',
         });
@@ -219,11 +236,11 @@ export default function PomodoroTimer() {
                         </div>
                         <div>
                             <Label htmlFor="work-duration">{t('workDuration')}</Label>
-                            <Input id="work-duration" type="number" value={editingTimer.workDuration / 60} onChange={(e) => setEditingTimer({...editingTimer, workDuration: parseInt(e.target.value) * 60 })} />
+                            <Input id="work-duration" type="number" value={editingTimer.workDuration / 60} onChange={(e) => setEditingTimer({...editingTimer, workDuration: parseInt(e.target.value, 10) * 60 })} />
                         </div>
                         <div>
                             <Label htmlFor="break-duration">{t('breakDuration')}</Label>
-                            <Input id="break-duration" type="number" value={editingTimer.breakDuration / 60} onChange={(e) => setEditingTimer({...editingTimer, breakDuration: parseInt(e.target.value) * 60})} />
+                            <Input id="break-duration" type="number" value={editingTimer.breakDuration / 60} onChange={(e) => setEditingTimer({...editingTimer, breakDuration: parseInt(e.target.value, 10) * 60})} />
                         </div>
                         <Button type="submit"><Check className="mr-2"/>{t('saveChanges')}</Button>
                     </form>
