@@ -26,6 +26,7 @@ import {
   DatabaseZap,
   Database,
   Computer,
+  BookOpenCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Dashboard from '@/components/dashboard';
@@ -56,6 +57,7 @@ import { Skeleton } from './ui/skeleton';
 import DataLookup from './data-lookup';
 import { useStorage } from '@/hooks/use-storage';
 import { initializeTimerManager } from '@/lib/timer-manager';
+import EnglishLearning from './english-learning';
 
 
 const DrawBoard = dynamic(() => import('@/components/draw-board'), {
@@ -77,12 +79,13 @@ type Module =
   | 'integrations'
   | 'draw-board'
   | 'quick-generators'
-  | 'data-lookup';
+  | 'data-lookup'
+  | 'english-learning';
 
 interface NavItem {
   id: Module;
   icon: FC<React.ComponentProps<'svg'>>;
-  labelKey: "dashboard" | "knowledgeGraph" | "taskBoard" | "notesEditor" | "calendar" | "pomodoroTimer" | "budgetTracker" | "aiTools" | "techNews" | "integrationsHub" | "drawBoard" | "quickGenerators" | "dataLookupTools";
+  labelKey: "dashboard" | "knowledgeGraph" | "taskBoard" | "notesEditor" | "calendar" | "pomodoroTimer" | "budgetTracker" | "aiTools" | "techNews" | "integrationsHub" | "drawBoard" | "quickGenerators" | "dataLookupTools" | "englishLearning";
 }
 
 const navItems: NavItem[] = [
@@ -97,6 +100,7 @@ const navItems: NavItem[] = [
   { id: 'draw-board', icon: PenTool, labelKey: 'drawBoard' },
   { id: 'quick-generators', icon: Zap, labelKey: 'quickGenerators' },
   { id: 'data-lookup', icon: DatabaseZap, labelKey: 'dataLookupTools' },
+  { id: 'english-learning', icon: BookOpenCheck, labelKey: 'englishLearning' },
   { id: 'ai-tools', icon: Cpu, labelKey: 'aiTools' },
   { id: 'tech-news', icon: Newspaper, labelKey: 'techNews' },
 ];
@@ -142,6 +146,8 @@ export default function AppShell() {
         return <QuickGenerators />;
        case 'data-lookup':
         return <DataLookup />;
+      case 'english-learning':
+        return <EnglishLearning />;
       case 'ai-tools':
         return <AiTools />;
       case 'tech-news':
