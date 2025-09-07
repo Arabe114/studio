@@ -186,5 +186,7 @@
   "titleCase": "Caixa de Título",
   "sentenceCase": "Caixa de Sentença",
   "hashGenerator": "Gerador de Hash",
-  "hashOutput": "Saída do Hash"
+  "hashOutput": "Saída do Hash",
+  "dataLookupTools": "Ferramentas de Busca de Dados",
+  "dataLookupToolsDescription": "Serviços de verificação e busca de dados para suas necessidades pessoais e de trabalho."
 }

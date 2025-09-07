@@ -186,5 +186,7 @@
   "titleCase": "Title Case",
   "sentenceCase": "Sentence Case",
   "hashGenerator": "Hash Generator",
-  "hashOutput": "Hash Output"
+  "hashOutput": "Hash Output",
+  "dataLookupTools": "Data Lookup Tools",
+  "dataLookupToolsDescription": "Personal data verification and lookup services for your personal and work needs."
 }
