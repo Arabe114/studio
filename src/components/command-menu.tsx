@@ -14,7 +14,7 @@ import {
 import { Button } from "./ui/button";
 import { Search } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
-import { NavItem } from "./app-shell";
+import type { NavItem } from "@/types";
 
 interface CommandMenuProps {
     navItems: NavItem[];

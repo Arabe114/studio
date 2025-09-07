@@ -61,35 +61,13 @@ import { initializeTimerManager } from '@/lib/timer-manager';
 import EnglishLearning from './english-learning';
 import { ScrollArea } from './ui/scroll-area';
 import { CommandMenu } from './command-menu';
+import type { NavItem, Module } from '@/types';
 
 
 const DrawBoard = dynamic(() => import('@/components/draw-board'), {
   loading: () => <Skeleton className="w-full h-full" />,
   ssr: false,
 });
-
-
-type Module =
-  | 'dashboard'
-  | 'knowledge-graph'
-  | 'kanban-board'
-  | 'notes-editor'
-  | 'calendar'
-  | 'pomodoro'
-  | 'budget'
-  | 'ai-tools'
-  | 'tech-news'
-  | 'integrations'
-  | 'draw-board'
-  | 'quick-generators'
-  | 'data-lookup'
-  | 'english-learning';
-
-export interface NavItem {
-  id: Module;
-  icon: FC<React.ComponentProps<'svg'>>;
-  labelKey: "dashboard" | "knowledgeGraph" | "taskBoard" | "notesEditor" | "calendar" | "pomodoroTimer" | "budgetTracker" | "aiTools" | "techNews" | "integrationsHub" | "drawBoard" | "quickGenerators" | "dataLookupTools" | "englishLearning";
-}
 
 interface AppShellProps {
   onExit: () => void;
