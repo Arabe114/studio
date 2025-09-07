@@ -1,12 +1,15 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Check, Dot, GitBranch, MessageSquare, Workflow, PenTool, FileText, KanbanSquare, Zap } from 'lucide-react';
 import { useLanguage } from '@/hooks/use-language';
 import Image from 'next/image';
+import { useStorage } from '@/hooks/use-storage';
+import { onDoc, setDoc } from '@/lib/storage';
+
 
 type IntegrationId = 'google-calendar' | 'github' | 'slack' | 'n8n' | 'figma' | 'notion' | 'linear' | 'discord' | 'zapier';
 
@@ -76,9 +79,7 @@ const integrations = [
   }
 ];
 
-export default function IntegrationsHub() {
-  const { t } = useLanguage();
-  const [connected, setConnected] = useState<Record<IntegrationId, boolean>>({
+const defaultConnectionState: Record<IntegrationId, boolean> = {
     'google-calendar': false,
     'github': false,
     'slack': false,
@@ -88,10 +89,35 @@ export default function IntegrationsHub() {
     'linear': false,
     'discord': false,
     'zapier': false,
-  });
+};
+
+export default function IntegrationsHub() {
+  const { t } = useLanguage();
+  const [connected, setConnected] = useState<Record<IntegrationId, boolean>>(defaultConnectionState);
+  const { storageMode } = useStorage();
+  
+  useEffect(() => {
+    const unsubscribe = onDoc('integrations', 'connection-status', (doc) => {
+        if (doc && doc.exists()) {
+            const data = doc.data();
+            // Ensure all integrations have a state, even if new ones are added
+            setConnected({ ...defaultConnectionState, ...data });
+        } else {
+            // Document doesn't exist, create it with default values
+            setDoc('integrations', 'connection-status', defaultConnectionState);
+        }
+    });
+    
+    return () => {
+      if(unsubscribe) unsubscribe();
+    }
+  }, [storageMode]);
+
 
   const handleConnect = (id: IntegrationId) => {
-    setConnected(prev => ({...prev, [id]: !prev[id]}));
+    const newConnectedState = { ...connected, [id]: !connected[id] };
+    setConnected(newConnectedState); // Optimistic update
+    setDoc('integrations', 'connection-status', newConnectedState, { merge: true });
   };
   
   return (
