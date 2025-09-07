@@ -1,15 +1,13 @@
 import * as admin from 'firebase-admin';
 
-// This is the correct way to initialize the admin SDK in a server environment.
-// It will automatically use the project's service account credentials.
 const projectId = "synergyhub-i1sba";
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    projectId: projectId,
-  });
-}
+// This is the most robust way to initialize the admin SDK in a server environment.
+// It prevents re-initialization errors by getting the app if it already exists.
+const app = admin.apps.find((app) => app?.name === projectId) || admin.initializeApp({
+  projectId: projectId,
+}, projectId);
 
-const db = admin.firestore();
+const db = admin.firestore(app);
 
 export { db };
