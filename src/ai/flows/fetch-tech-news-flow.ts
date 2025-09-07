@@ -16,10 +16,12 @@ import * as admin from 'firebase-admin';
 
 // This is the most robust way to initialize the admin SDK in a server environment.
 // It prevents re-initialization errors by getting the app if it already exists.
-if (!admin.apps.length) {
-  admin.initializeApp();
+function getDb() {
+    if (!admin.apps.length) {
+        admin.initializeApp();
+    }
+    return admin.firestore();
 }
-const db = admin.firestore();
 
 
 const TechNewsOutputSchema = z.object({
@@ -71,6 +73,7 @@ const saveTechNewsFlow = ai.defineFlow(
         inputSchema: TechNewsOutputSchema,
     },
     async (newsToSave) => {
+        const db = getDb();
         const plainOutput = JSON.parse(JSON.stringify(newsToSave));
         const newsRef = db.collection('tech-news').doc('latest');
         await newsRef.set(plainOutput);
@@ -87,6 +90,7 @@ const clearTechNewsFlow = ai.defineFlow(
         name: 'clearTechNewsFlow',
     },
     async () => {
+        const db = getDb();
         const newsRef = db.collection('tech-news').doc('latest');
         await newsRef.delete();
     }
@@ -102,6 +106,7 @@ const viewSavedNewsFlow = ai.defineFlow(
         outputSchema: TechNewsOutputSchema.nullable(),
     },
     async () => {
+        const db = getDb();
         const newsRef = db.collection('tech-news').doc('latest');
         const docSnap = await newsRef.get();
         if (docSnap.exists) {
@@ -114,3 +119,4 @@ const viewSavedNewsFlow = ai.defineFlow(
 export async function viewSavedNews(): Promise<TechNewsOutput | null> {
     return viewSavedNewsFlow();
 }
+
