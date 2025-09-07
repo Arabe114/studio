@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -86,7 +87,7 @@ export default function Dashboard({ setActiveModule }: DashboardProps) {
   return (
     <div className="space-y-6">
        <div className="text-left">
-        <h1 className="text-4xl font-bold tracking-tight text-primary">
+        <h1 className="text-4xl font-bold tracking-tight text-foreground">
           {t('dashboard')}
         </h1>
         <p className="mt-2 max-w-2xl text-lg text-muted-foreground">
