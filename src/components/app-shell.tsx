@@ -113,11 +113,14 @@ export default function AppShell() {
       >
         <div
           className={cn(
-            'mb-4 flex h-10 shrink-0 items-center w-full',
-            isSidebarExpanded ? 'justify-start' : 'justify-center'
+            'mb-4 flex h-10 shrink-0 items-center',
+             isSidebarExpanded ? 'w-full' : ''
           )}
         >
-          <div className="flex items-center gap-3">
+          <div className={cn(
+            "flex items-center gap-3",
+            !isSidebarExpanded && "w-full justify-center"
+          )}>
              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-neon-primary hover:shadow-lg hover:scale-105 transition-all duration-200">
                 {t('eln')}
              </div>
