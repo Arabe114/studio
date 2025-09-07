@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
-import { Loader2, BookText, SpellCheck, Volume2, Bot } from 'lucide-react';
+import { Loader2, BookText, SpellCheck, Volume2, Bot, Download } from 'lucide-react';
 import { englishLearningTool, textToSpeech, EnglishLearningInput, EnglishLearningOutput, TextToSpeechOutput } from '@/ai/flows/english-learning-flow';
 import { Skeleton } from './ui/skeleton';
 import { Badge } from './ui/badge';
@@ -146,7 +146,15 @@ export default function EnglishLearning() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">{t('englishLearningHub')}</h1>
+        <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold">{t('englishLearningHub')}</h1>
+            <Button asChild variant="outline">
+                <a href="/english-learning-guide.txt" download>
+                    <Download className="mr-2"/>
+                    {t('downloadGuide')}
+                </a>
+            </Button>
+        </div>
         <p className="text-muted-foreground max-w-2xl mt-2">
           {t('englishLearningHubDescription')}
         </p>
