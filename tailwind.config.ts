@@ -67,6 +67,9 @@ export default {
           ring: 'hsl(var(--sidebar-ring))',
         },
       },
+      backgroundImage: {
+        'glow': "radial-gradient(circle at var(--mouse-x) var(--mouse-y), hsl(var(--primary) / 0.15), transparent 20%)",
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
@@ -90,18 +93,40 @@ export default {
           },
         },
         'shake': {
-          '0%, 100%': { transform: 'rotate(0deg)' },
-          '25%': { transform: 'rotate(-5deg)' },
-          '75%': { transform: 'rotate(5deg)' },
+            '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+            '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+            '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+            '40%, 60%': { transform: 'translate3d(4px, 0, 0)' },
+        },
+        'success-pop': {
+          '0%': { transform: 'scale(1)' },
+          '50%': { transform: 'scale(1.05)' },
+          '100%': { transform: 'scale(1)' },
+        },
+        'neon-pulse': {
+            '0%, 100%': { boxShadow: '0 0 5px hsl(var(--primary)/0.4), 0 0 10px hsl(var(--primary)/0.4)' },
+            '50%': { boxShadow: '0 0 10px hsl(var(--primary)/0.6), 0 0 20px hsl(var(--primary)/0.6)' },
+        },
+        'neon-border-pulse': {
+          '0%, 100%': { boxShadow: '0 0 2px hsl(var(--primary)/0.3), 0 0 5px hsl(var(--primary)/0.3), inset 0 0 5px hsl(var(--primary)/0.3)' },
+          '50%': { boxShadow: '0 0 4px hsl(var(--primary)/0.5), 0 0 10px hsl(var(--primary)/0.5), inset 0 0 10px hsl(var(--primary)/0.5)' },
+        },
+        'shimmer': {
+          'from': { 'background-position': '200% 0' },
+          'to': { 'background-position': '-200% 0' },
         }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'shake': 'shake 0.2s ease-in-out',
+        'shake': 'shake 0.82s cubic-bezier(.36,.07,.19,.97) both',
+        'success-pop': 'success-pop 0.3s ease-out',
+        'neon-pulse': 'neon-pulse 4s ease-in-out infinite',
+        'neon-border-pulse': 'neon-border-pulse 3s ease-in-out infinite',
+        'shimmer': 'shimmer 1s linear infinite'
       },
       boxShadow: {
-        'neon-primary': '0 0 8px hsl(var(--primary) / 0.5)',
+        'neon-primary': '0 0 8px hsl(var(--primary) / 0.5), 0 0 12px hsl(var(--primary) / 0.5)',
         'neon-accent': '0 0 8px hsl(var(--accent) / 0.5)',
       },
       textShadow: {
