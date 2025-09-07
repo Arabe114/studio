@@ -34,7 +34,19 @@ export default function EnglishLearning() {
   };
 
   const handleSubmit = async (tool: 'vocabulary' | 'corrector' | 'pronunciation') => {
-    const query = input[tool];
+    let query = '';
+    let toolKey: EnglishLearningInput['tool'] = 'vocabulary'; // default
+
+    if (tool === 'vocabulary') {
+        query = input.vocabulary;
+        toolKey = 'search_word';
+    } else if (tool === 'corrector') {
+        query = input.corrector;
+        toolKey = 'corrector';
+    } else {
+        query = input.pronunciation;
+    }
+    
     if (!query) return;
 
     setLoading(true);
@@ -46,7 +58,6 @@ export default function EnglishLearning() {
             const response = await textToSpeech({ text: query });
             setResult(response);
         } else {
-            const toolKey = tool as EnglishLearningInput['tool'];
             const response = await englishLearningTool({ tool: toolKey, query });
             setResult(response);
         }
@@ -138,7 +149,7 @@ export default function EnglishLearning() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); setResult(null); }} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-3 mb-4">
           <TabsTrigger value="vocabulary"><BookText className="mr-2"/>{t('vocabularyBuilder')}</TabsTrigger>
           <TabsTrigger value="corrector"><SpellCheck className="mr-2"/>{t('sentenceCorrector')}</TabsTrigger>
           <TabsTrigger value="pronunciation"><Volume2 className="mr-2"/>{t('pronunciationHelper')}</TabsTrigger>
