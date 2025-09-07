@@ -164,7 +164,9 @@ export default function AppShell() {
               onClick={() => setActiveModule(item.id)}
               className={cn(
                 'group flex h-10 items-center gap-3 rounded-lg px-3 transition-colors',
-                'hover:bg-accent hover:text-accent-foreground hover:shadow-neon-accent',
+                'hover:text-accent-foreground hover:shadow-neon-accent',
+                'bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_100%]',
+                'hover:animate-shimmer-fast hover:bg-[position:0%_0%]',
                 activeModule === item.id
                   ? 'bg-accent text-accent-foreground shadow-neon-accent'
                   : 'text-muted-foreground',
@@ -172,7 +174,7 @@ export default function AppShell() {
               )}
               title={t(item.labelKey)}
             >
-              <item.icon className="h-5 w-5 shrink-0 group-hover:animate-shake" />
+              <item.icon className="h-5 w-5 shrink-0 group-hover:animate-rotate-in" />
               <span className="truncate">{t(item.labelKey)}</span>
             </button>
           ))}

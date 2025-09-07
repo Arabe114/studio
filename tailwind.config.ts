@@ -69,7 +69,7 @@ export default {
         },
       },
       backgroundImage: {
-        'glow': "radial-gradient(circle at var(--mouse-x) var(--mouse-y), hsl(var(--primary) / 0.1), transparent 40%)",
+        'glow': "radial-gradient(circle at var(--mouse-x) var(--mouse-y), hsl(var(--primary) / 0.15), transparent 50%)",
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -94,10 +94,10 @@ export default {
           },
         },
         'shake': {
-            '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
-            '20%, 80%': { transform: 'translate3d(1px, 0, 0)' },
-            '30%, 50%, 70%': { transform: 'translate3d(-1px, 0, 0)' },
-            '40%, 60%': { transform: 'translate3d(1px, 0, 0)' },
+            '10%, 90%': { transform: 'translate3d(-0.5px, 0, 0) rotate(-1deg)' },
+            '20%, 80%': { transform: 'translate3d(0.5px, 0, 0) rotate(1deg)' },
+            '30%, 50%, 70%': { transform: 'translate3d(-0.5px, 0, 0) rotate(-1deg)' },
+            '40%, 60%': { transform: 'translate3d(0.5px, 0, 0) rotate(1deg)' },
         },
         'success-pop': {
           '0%': { transform: 'scale(1)' },
@@ -107,6 +107,10 @@ export default {
         'shimmer': {
           'from': { 'background-position': '200% 0' },
           'to': { 'background-position': '-200% 0' },
+        },
+        'rotate-in': {
+          'from': { transform: 'rotate(0deg)' },
+          'to': { transform: 'rotate(15deg)' },
         }
       },
       animation: {
@@ -114,11 +118,13 @@ export default {
         'accordion-up': 'accordion-up 0.2s ease-out',
         'shake': 'shake 0.82s cubic-bezier(.36,.07,.19,.97) both',
         'success-pop': 'success-pop 0.3s ease-out',
-        'shimmer': 'shimmer 4s linear infinite'
+        'shimmer': 'shimmer 4s linear infinite',
+        'shimmer-fast': 'shimmer 2s linear infinite',
+        'rotate-in': 'rotate-in 0.3s ease-out forwards',
       },
       boxShadow: {
-        'neon-primary': '0 0 2px hsl(var(--primary) / 0.3), 0 0 4px hsl(var(--primary) / 0.3)',
-        'neon-accent': '0 0 2px hsl(var(--accent) / 0.4)',
+        'neon-primary': '0 0 1px hsl(var(--primary) / 0.3), 0 0 2px hsl(var(--primary) / 0.3)',
+        'neon-accent': '0 0 1px hsl(var(--accent) / 0.4)',
       },
       textShadow: {
         'neon-primary': '0 0 8px hsl(var(--primary) / 0.8)',
