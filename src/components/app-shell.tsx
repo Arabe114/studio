@@ -59,6 +59,7 @@ import DataLookup from './data-lookup';
 import { useStorage } from '@/hooks/use-storage';
 import { initializeTimerManager } from '@/lib/timer-manager';
 import EnglishLearning from './english-learning';
+import { ScrollArea } from './ui/scroll-area';
 
 
 const DrawBoard = dynamic(() => import('@/components/draw-board'), {
@@ -181,31 +182,33 @@ export default function AppShell({ onExit }: AppShellProps) {
              </span>
         </div>
 
-        <div className="flex flex-grow flex-col gap-2 w-full">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveModule(item.id)}
-              className={cn(
-                'group flex h-10 items-center gap-3 rounded-lg px-3 transition-colors w-full justify-start',
-                'hover:text-accent-foreground hover:shadow-neon-accent',
-                 activeModule === item.id
-                  ? 'bg-accent text-accent-foreground shadow-neon-accent'
-                  : 'text-muted-foreground hover:bg-gradient-to-r from-primary/10 via-accent/20 to-primary/10'
-              )}
-              title={t(item.labelKey)}
-            >
-              <item.icon className="h-5 w-5 shrink-0 transition-transform duration-300 group-hover:rotate-12" />
-              <span className={cn(
-                "truncate transition-colors group-hover:text-shadow-neon-primary"
-               )}>
-                {t(item.labelKey)}
-              </span>
-            </button>
-          ))}
-        </div>
+        <ScrollArea className="flex-grow">
+          <div className="flex flex-col gap-2 w-full pr-3">
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveModule(item.id)}
+                  className={cn(
+                    'group flex h-10 items-center gap-3 rounded-lg px-3 transition-colors w-full justify-start',
+                    'hover:text-accent-foreground hover:shadow-neon-accent',
+                     activeModule === item.id
+                      ? 'bg-accent text-accent-foreground shadow-neon-accent'
+                      : 'text-muted-foreground hover:bg-gradient-to-r from-primary/10 via-accent/20 to-primary/10'
+                  )}
+                  title={t(item.labelKey)}
+                >
+                  <item.icon className="h-5 w-5 shrink-0 transition-transform duration-300 group-hover:rotate-12" />
+                  <span className={cn(
+                    "truncate transition-colors group-hover:text-shadow-neon-primary"
+                   )}>
+                    {t(item.labelKey)}
+                  </span>
+                </button>
+              ))}
+          </div>
+        </ScrollArea>
         
-        <div className="mt-auto flex flex-col gap-2 w-full">
+        <div className="mt-auto flex flex-col gap-2 w-full pt-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className={cn(
