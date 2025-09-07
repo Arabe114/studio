@@ -117,7 +117,7 @@
   "drawBoard": "Draw Board",
   "integrationsDescription": "Connect your favorite apps to streamline your workflow and centralize your data.",
   "connect": "Connect",
-  "connected": "Connected",
+  "connected": "Manage",
   "googleCalendar": "Google Calendar",
   "googleCalendarDescription": "Two-way sync events between ELN and Google Calendar.",
   "github": "GitHub",
@@ -212,5 +212,9 @@
   "theme": "Theme",
   "storage": "Data Storage",
   "firebase": "Firebase (Cloud)",
-  "local": "Local (Browser)"
+  "local": "Local (Browser)",
+  "manage": "Manage",
+  "saveCredentialsDescription": "Enter your credentials below. They will be stored securely.",
+  "saveCredentials": "Save Credentials",
+  "disconnect": "Disconnect"
 }

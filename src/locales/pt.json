@@ -117,7 +117,7 @@
   "drawBoard": "Quadro de Desenho",
   "integrationsDescription": "Conecte seus aplicativos favoritos para otimizar seu fluxo de trabalho e centralizar seus dados.",
   "connect": "Conectar",
-  "connected": "Conectado",
+  "connected": "Gerenciar",
   "googleCalendar": "Google Agenda",
   "googleCalendarDescription": "Sincronize eventos bidirecionalmente entre o ELN e o Google Agenda.",
   "github": "GitHub",
@@ -212,5 +212,9 @@
   "theme": "Tema",
   "storage": "Armazenamento de Dados",
   "firebase": "Firebase (Nuvem)",
-  "local": "Local (Navegador)"
+  "local": "Local (Navegador)",
+  "manage": "Gerenciar",
+  "saveCredentialsDescription": "Insira suas credenciais abaixo. Elas serão armazenadas com segurança.",
+  "saveCredentials": "Salvar Credenciais",
+  "disconnect": "Desconectar"
 }
