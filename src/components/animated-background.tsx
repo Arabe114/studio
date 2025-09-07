@@ -7,7 +7,8 @@ import { useTheme } from 'next-themes';
 const AnimatedBackground = () => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const { resolvedTheme } = useTheme();
-    const mousePosition = useRef({ x: Infinity, y: Infinity });
+    const realMousePosition = useRef({ x: Infinity, y: Infinity });
+    const animatedMousePosition = useRef({ x: Infinity, y: Infinity });
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -27,11 +28,11 @@ const AnimatedBackground = () => {
         };
 
         const handleMouseMove = (event: MouseEvent) => {
-            mousePosition.current = { x: event.clientX, y: event.clientY };
+            realMousePosition.current = { x: event.clientX, y: event.clientY };
         };
 
         const handleMouseLeave = () => {
-            mousePosition.current = { x: Infinity, y: Infinity };
+            realMousePosition.current = { x: Infinity, y: Infinity };
         }
 
         window.addEventListener('resize', handleResize);
@@ -60,15 +61,17 @@ const AnimatedBackground = () => {
                 context.moveTo(0, this.y);
 
                 for (let i = 0; i < width; i++) {
-                    const dx = i - mousePosition.current.x;
-                    const dy = this.y - mousePosition.current.y;
+                    const dx = i - animatedMousePosition.current.x;
+                    const dy = this.y - animatedMousePosition.current.y;
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     
                     const maxSwell = 250;
-                    const swell = 1 - (distance / maxSwell);
-                    const swellAmount = swell > 0 ? Math.sin(swell * Math.PI) * 60 : 0;
+                    // Using a cosine easing function for a smoother falloff
+                    const swellFactor = Math.max(0, 1 - distance / maxSwell);
+                    const easedSwell = (1 - Math.cos(swellFactor * Math.PI)) / 2;
+                    const swellAmount = easedSwell * 60;
                     
-                    const waveY = Math.sin(i * this.length + this.phase + frame * this.frequency) * this.amplitude + this.y + swellAmount;
+                    const waveY = this.y + Math.sin(i * this.length + this.phase + frame * this.frequency) * this.amplitude + swellAmount;
                     context.lineTo(i, waveY);
                 }
 
@@ -87,14 +90,14 @@ const AnimatedBackground = () => {
             const primaryS = parseFloat(primaryColor[1]);
             const primaryL = parseFloat(primaryColor[2]);
             
-            const numberOfWaves = Math.floor(height / 50); // Create a wave every 50 pixels
+            const numberOfWaves = Math.floor(height / 50); 
             waves = [];
             for (let i = 0; i < numberOfWaves; i++) {
                 const y = (height / (numberOfWaves - 1)) * i;
                 const length = 0.005 + Math.random() * 0.01;
                 const amplitude = 15 + Math.random() * 20;
                 const frequency = 0.01 + Math.random() * 0.01;
-                const opacity = 0.2 + Math.random() * 0.3;
+                const opacity = 0.4 + Math.random() * 0.3;
                 const color = `hsla(${primaryH}, ${primaryS}%, ${primaryL}%, ${opacity})`;
                 waves.push(new Wave(y, length, amplitude, frequency, color));
             }
@@ -109,6 +112,15 @@ const AnimatedBackground = () => {
             const bgColor = resolvedTheme === 'dark' ? 'hsl(0 0% 19%)' : 'hsl(0 0% 100%)';
             ctx.fillStyle = bgColor;
             ctx.fillRect(0,0,width,height);
+            
+            // Easing / Interpolation for smoother mouse follow
+            const easingFactor = 0.08;
+            if (animatedMousePosition.current.x === Infinity) {
+                animatedMousePosition.current = realMousePosition.current;
+            } else {
+                animatedMousePosition.current.x += (realMousePosition.current.x - animatedMousePosition.current.x) * easingFactor;
+                animatedMousePosition.current.y += (realMousePosition.current.y - animatedMousePosition.current.y) * easingFactor;
+            }
 
             waves.forEach(wave => wave.draw(ctx, frame));
             frame++;
