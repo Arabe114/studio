@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Textarea } from './ui/textarea';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 
 // Simple hash function (not cryptographically secure)
 function simpleHash(algo: 'md5' | 'sha1' | 'sha256', text: string): string {
@@ -29,6 +30,20 @@ function simpleHash(algo: 'md5' | 'sha1' | 'sha256', text: string): string {
     return (hash * multiplier).toString(16).replace('-', '');
 }
 
+const GeneratorCard = ({ title, children }: { title: string, children: React.ReactNode}) => (
+    <AccordionItem value={title} className="border-none">
+        <AccordionTrigger className="text-xl font-semibold bg-card/50 px-6 rounded-lg hover:no-underline hover:bg-card">
+            {title}
+        </AccordionTrigger>
+        <AccordionContent className="pt-4">
+            <Card>
+                <CardContent className="pt-6">
+                    {children}
+                </CardContent>
+            </Card>
+        </AccordionContent>
+    </AccordionItem>
+);
 
 export default function QuickGenerators() {
   const { t } = useLanguage();
@@ -171,12 +186,11 @@ export default function QuickGenerators() {
       <p className="text-muted-foreground mb-8">
         {t('quickGeneratorsDescription')}
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <Accordion type="multiple" className="space-y-4">
         
         {/* Password Generator */}
-        <Card className="flex flex-col">
-            <CardHeader><CardTitle>{t('passwordGenerator')}</CardTitle></CardHeader>
-            <CardContent className="flex-grow flex flex-col space-y-4">
+        <GeneratorCard title={t('passwordGenerator')}>
+            <div className="flex-grow flex flex-col space-y-4">
                 <div className="relative">
                     <Input readOnly value={password} className="pr-16 font-mono" />
                     <div className="absolute top-0 right-0 flex h-full items-center gap-1 pr-2">
@@ -194,13 +208,12 @@ export default function QuickGenerators() {
                     <div className="flex items-center space-x-2"><Checkbox id="numbers" checked={includeNumbers} onCheckedChange={(c) => {setIncludeNumbers(!!c); generatePassword();}} /><Label htmlFor="numbers">{t('numbers')}</Label></div>
                     <div className="flex items-center space-x-2"><Checkbox id="symbols" checked={includeSymbols} onCheckedChange={(c) => {setIncludeSymbols(!!c); generatePassword();}} /><Label htmlFor="symbols">{t('symbols')}</Label></div>
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+        </GeneratorCard>
         
         {/* QR Code Generator */}
-        <Card className="flex flex-col">
-            <CardHeader><CardTitle>{t('qrCodeGenerator')}</CardTitle></CardHeader>
-            <CardContent className="flex-grow flex flex-col space-y-4">
+        <GeneratorCard title={t('qrCodeGenerator')}>
+            <div className="flex-grow flex flex-col space-y-4">
                 <div className="space-y-2">
                     <Label htmlFor="qr-input">{t('textOrUrl')}</Label>
                     <Input id="qr-input" value={qrInput} onChange={(e) => setQrInput(e.target.value)} />
@@ -211,13 +224,12 @@ export default function QuickGenerators() {
                         <Image src={qrCodeUrl} alt="Generated QR Code" width={150} height={150} />
                     </div>
                 )}
-            </CardContent>
-        </Card>
+            </div>
+        </GeneratorCard>
 
         {/* Lorem Ipsum Generator */}
-        <Card className="flex flex-col">
-            <CardHeader><CardTitle>{t('loremIpsumGenerator')}</CardTitle></CardHeader>
-            <CardContent className="flex-grow flex flex-col space-y-4">
+        <GeneratorCard title={t('loremIpsumGenerator')}>
+            <div className="flex-grow flex flex-col space-y-4">
                  <div className="space-y-2">
                     <Label htmlFor="lorem-paragraphs">{t('paragraphs')}</Label>
                     <Input id="lorem-paragraphs" type="number" min="1" max="20" value={loremParagraphs} onChange={(e) => setLoremParagraphs(parseInt(e.target.value))} />
@@ -225,25 +237,23 @@ export default function QuickGenerators() {
                 <Button onClick={generateLoremIpsum}>{t('generate')}</Button>
                 <Textarea readOnly value={loremIpsumText} className="flex-grow" rows={8}/>
                 <Button variant="secondary" onClick={() => copyToClipboard(loremIpsumText)}><Copy className="mr-2"/>{t('copyText')}</Button>
-            </CardContent>
-        </Card>
+            </div>
+        </GeneratorCard>
 
         {/* UUID Generator */}
-        <Card className="flex flex-col">
-            <CardHeader><CardTitle>{t('uuidGenerator')}</CardTitle></CardHeader>
-            <CardContent className="flex-grow flex flex-col space-y-4 justify-center">
+        <GeneratorCard title={t('uuidGenerator')}>
+            <div className="flex-grow flex flex-col space-y-4 justify-center">
                  <div className="relative">
                     <Input readOnly value={uuid} className="pr-10 font-mono" />
                     <Button variant="ghost" size="icon" className="h-8 w-8 absolute top-1/2 right-1 -translate-y-1/2" onClick={() => copyToClipboard(uuid)}><Copy /></Button>
                 </div>
                 <Button onClick={generateUuid}>{t('generateNewUuid')}</Button>
-            </CardContent>
-        </Card>
+            </div>
+        </GeneratorCard>
 
         {/* Color Converter */}
-        <Card className="flex flex-col">
-            <CardHeader><CardTitle>{t('colorConverter')}</CardTitle></CardHeader>
-            <CardContent className="flex-grow flex flex-col space-y-4">
+        <GeneratorCard title={t('colorConverter')}>
+            <div className="flex-grow flex flex-col space-y-4">
                  <div className="space-y-2">
                     <Label htmlFor="hex-color">{t('hexColor')}</Label>
                     <div className="flex gap-2">
@@ -260,13 +270,12 @@ export default function QuickGenerators() {
                     <Label>{t('hslColor')}</Label>
                     <Input readOnly value={hslColor} />
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+        </GeneratorCard>
 
         {/* Case Converter */}
-        <Card className="flex flex-col">
-            <CardHeader><CardTitle>{t('caseConverter')}</CardTitle></CardHeader>
-            <CardContent className="flex-grow flex flex-col space-y-4">
+        <GeneratorCard title={t('caseConverter')}>
+            <div className="flex-grow flex flex-col space-y-4">
                  <div className="space-y-2 flex-grow flex flex-col">
                     <Label htmlFor="case-input">{t('inputText')}</Label>
                     <Textarea id="case-input" value={caseInput} onChange={(e) => setCaseInput(e.target.value)} className="flex-grow" />
@@ -288,13 +297,12 @@ export default function QuickGenerators() {
                     <Textarea id="case-output" readOnly value={caseOutput} className="flex-grow"/>
                 </div>
                  <Button variant="secondary" onClick={() => copyToClipboard(caseOutput)}><Copy className="mr-2"/>{t('copyText')}</Button>
-            </CardContent>
-        </Card>
+            </div>
+        </GeneratorCard>
         
         {/* Hash Generator */}
-        <Card className="flex flex-col">
-            <CardHeader><CardTitle>{t('hashGenerator')}</CardTitle></CardHeader>
-            <CardContent className="flex-grow flex flex-col space-y-4">
+        <GeneratorCard title={t('hashGenerator')}>
+            <div className="flex-grow flex flex-col space-y-4">
                  <div className="space-y-2 flex-grow flex flex-col">
                     <Label htmlFor="hash-input">{t('inputText')}</Label>
                     <Textarea id="hash-input" value={hashInput} onChange={(e) => setHashInput(e.target.value)} className="flex-grow"/>
@@ -315,10 +323,12 @@ export default function QuickGenerators() {
                     <Textarea id="hash-output" readOnly value={hashOutput} className="font-mono" rows={3}/>
                 </div>
                  <Button variant="secondary" onClick={() => copyToClipboard(hashOutput)}><Copy className="mr-2"/>{t('copyText')}</Button>
-            </CardContent>
-        </Card>
+            </div>
+        </GeneratorCard>
 
-      </div>
+      </Accordion>
     </div>
   );
 }
+
+    
