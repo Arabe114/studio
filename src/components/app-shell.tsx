@@ -20,6 +20,8 @@ import {
   Settings,
   Sun,
   Moon,
+  PlugZap,
+  PenTool,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Dashboard from '@/components/dashboard';
@@ -31,6 +33,8 @@ import PomodoroTimer from '@/components/pomodoro-timer';
 import BudgetTracker from '@/components/budget-tracker';
 import AiTools from '@/components/ai-tools';
 import TechNews from '@/components/tech-news';
+import IntegrationsHub from '@/components/integrations-hub';
+import DrawBoard from '@/components/draw-board';
 import { useTheme } from 'next-themes';
 import {
   DropdownMenu,
@@ -52,12 +56,14 @@ type Module =
   | 'pomodoro'
   | 'budget'
   | 'ai-tools'
-  | 'tech-news';
+  | 'tech-news'
+  | 'integrations'
+  | 'draw-board';
 
 interface NavItem {
   id: Module;
   icon: FC<React.ComponentProps<'svg'>>;
-  labelKey: "dashboard" | "knowledgeGraph" | "taskBoard" | "notesEditor" | "calendar" | "pomodoroTimer" | "budgetTracker" | "aiTools" | "techNews";
+  labelKey: "dashboard" | "knowledgeGraph" | "taskBoard" | "notesEditor" | "calendar" | "pomodoroTimer" | "budgetTracker" | "aiTools" | "techNews" | "integrationsHub" | "drawBoard";
 }
 
 const navItems: NavItem[] = [
@@ -68,6 +74,8 @@ const navItems: NavItem[] = [
   { id: 'calendar', icon: Calendar, labelKey: 'calendar' },
   { id: 'pomodoro', icon: Timer, labelKey: 'pomodoroTimer' },
   { id: 'budget', icon: PiggyBank, labelKey: 'budgetTracker' },
+  { id: 'integrations', icon: PlugZap, labelKey: 'integrationsHub' },
+  { id: 'draw-board', icon: PenTool, labelKey: 'drawBoard' },
   { id: 'ai-tools', icon: Cpu, labelKey: 'aiTools' },
   { id: 'tech-news', icon: Newspaper, labelKey: 'techNews' },
 ];
@@ -94,6 +102,10 @@ export default function AppShell() {
         return <PomodoroTimer />;
       case 'budget':
         return <BudgetTracker />;
+      case 'integrations':
+        return <IntegrationsHub />;
+      case 'draw-board':
+        return <DrawBoard />;
       case 'ai-tools':
         return <AiTools />;
       case 'tech-news':
@@ -115,16 +127,16 @@ export default function AppShell() {
         <div
           className={cn(
             'mb-4 flex items-center gap-3',
-            isSidebarExpanded ? 'w-full' : 'w-10 justify-center'
+            isSidebarExpanded ? 'w-full justify-start' : 'w-10 justify-center'
           )}
         >
-             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-neon-primary hover:shadow-lg hover:scale-105 transition-all duration-200">
+             <div className={cn("flex h-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-neon-primary hover:shadow-lg hover:scale-105 transition-all duration-200", isSidebarExpanded ? "w-10" : "w-full")}>
                 ELN
              </div>
-             {isSidebarExpanded && <span className={cn(
-                 "text-lg font-semibold text-primary [text-shadow:0_0_8px_hsl(var(--primary)/_0.8)] transition-all duration-300 ease-in-out",
+             <span className={cn(
+                 "text-lg font-semibold text-primary [text-shadow:0_0_8px_hsl(var(--primary)/_0.8)] transition-opacity duration-200 ease-out",
                  isSidebarExpanded ? "opacity-100" : "opacity-0"
-             )}>ELN</span>}
+             )}>{t('eln')}</span>
         </div>
 
         <div className="flex flex-grow flex-col gap-2">
