@@ -1,7 +1,7 @@
+
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Stage, Layer, Line } from 'react-konva';
+import React, { useState, useRef, useEffect, ComponentType } from 'react';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import type { Stage as StageType } from 'konva/lib/Stage';
 import { Button } from './ui/button';
@@ -11,6 +11,7 @@ import { Slider } from './ui/slider';
 import { Label } from './ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { useLanguage } from '@/hooks/use-language';
+import { Skeleton } from './ui/skeleton';
 
 type Line = {
   tool: 'pen' | 'eraser';
@@ -18,6 +19,14 @@ type Line = {
   color: string;
   strokeWidth: number;
 };
+
+// Define a placeholder type for the Konva components
+type KonvaComponents = {
+  Stage: ComponentType<any>;
+  Layer: ComponentType<any>;
+  Line: ComponentType<any>;
+} | null;
+
 
 export default function DrawBoard() {
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
@@ -30,18 +39,41 @@ export default function DrawBoard() {
   const stageRef = useRef<StageType>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const [isMounted, setIsMounted] = useState(false);
   const { t } = useLanguage();
+  
+  const [konva, setKonva] = useState<KonvaComponents>(null);
 
   useEffect(() => {
-    setIsMounted(true);
+    // Dynamically import konva components only on the client side
+    import('react-konva').then(KonvaModule => {
+      setKonva({
+          Stage: KonvaModule.Stage,
+          Layer: KonvaModule.Layer,
+          Line: KonvaModule.Line,
+      });
+    });
+  }, []);
+
+  useEffect(() => {
     if (containerRef.current) {
+      const resizeObserver = new ResizeObserver(entries => {
+        if (entries.length > 0) {
+            const entry = entries[0];
+            setDimensions({
+                width: entry.contentRect.width,
+                height: entry.contentRect.height,
+            });
+        }
+      });
+      resizeObserver.observe(containerRef.current);
+      // Initial set
       setDimensions({
         width: containerRef.current.offsetWidth,
         height: containerRef.current.offsetHeight,
       });
+      return () => resizeObserver.disconnect();
     }
-  }, []);
+  }, [konva]); // Rerun when konva is loaded
 
   const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
     isDrawing.current = true;
@@ -182,37 +214,41 @@ export default function DrawBoard() {
       </Card>
       
       <CardContent ref={containerRef} className="p-0 flex-grow rounded-lg border bg-background overflow-hidden">
-        {isMounted && (
-            <Stage
-            width={dimensions.width}
-            height={dimensions.height}
-            onMouseDown={handleMouseDown}
-            onMousemove={handleMouseMove}
-            onMouseup={handleMouseUp}
-            onTouchStart={handleMouseDown}
-            onTouchMove={handleMouseMove}
-            onTouchEnd={handleMouseUp}
-            ref={stageRef}
+        {!konva ? (
+            <Skeleton className="w-full h-full" />
+        ) : (
+            <konva.Stage
+                width={dimensions.width}
+                height={dimensions.height}
+                onMouseDown={handleMouseDown}
+                onMousemove={handleMouseMove}
+                onMouseup={handleMouseUp}
+                onTouchStart={handleMouseDown}
+                onTouchMove={handleMouseMove}
+                onTouchEnd={handleMouseUp}
+                ref={stageRef}
             >
-            <Layer>
-                {lines.map((line, i) => (
-                <Line
-                    key={i}
-                    points={line.points}
-                    stroke={line.color}
-                    strokeWidth={line.strokeWidth}
-                    tension={0.5}
-                    lineCap="round"
-                    lineJoin="round"
-                    globalCompositeOperation={
-                    line.tool === 'eraser' ? 'destination-out' : 'source-over'
-                    }
-                />
-                ))}
-            </Layer>
-            </Stage>
+                <konva.Layer>
+                    {lines.map((line, i) => (
+                    <konva.Line
+                        key={i}
+                        points={line.points}
+                        stroke={line.color}
+                        strokeWidth={line.strokeWidth}
+                        tension={0.5}
+                        lineCap="round"
+                        lineJoin="round"
+                        globalCompositeOperation={
+                        line.tool === 'eraser' ? 'destination-out' : 'source-over'
+                        }
+                    />
+                    ))}
+                </konva.Layer>
+            </konva.Stage>
         )}
       </CardContent>
     </div>
   );
 }
+
+    

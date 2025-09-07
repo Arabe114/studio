@@ -213,10 +213,12 @@ export default function AppShell() {
         </div>
       </nav>
       <main className="flex-1 overflow-auto p-4 sm:p-6 bg-background/60 backdrop-blur-sm z-0">
-        <div className="animate-in fade-in-50 duration-500">
+        <div className="animate-in fade-in-50 duration-500 h-full">
            {renderModule()}
         </div>
       </main>
     </div>
   );
 }
+
+    
