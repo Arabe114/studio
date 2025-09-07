@@ -4,11 +4,11 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Dot, GitBranch, MessageSquare, Workflow } from 'lucide-react';
+import { Check, Dot, GitBranch, MessageSquare, Workflow, PenTool, FileText, KanbanSquare, Zap } from 'lucide-react';
 import { useLanguage } from '@/hooks/use-language';
 import Image from 'next/image';
 
-type IntegrationId = 'google-calendar' | 'github' | 'slack' | 'n8n';
+type IntegrationId = 'google-calendar' | 'github' | 'slack' | 'n8n' | 'figma' | 'notion' | 'linear' | 'discord' | 'zapier';
 
 const integrations = [
   {
@@ -38,6 +38,41 @@ const integrations = [
     description: 'n8nDescription',
     icon: <Workflow className="w-12 h-12 p-2 rounded-lg border bg-card text-primary"/>,
     category: 'Automation',
+  },
+  {
+    id: 'figma',
+    name: 'figma',
+    description: 'figmaDescription',
+    icon: <PenTool className="w-12 h-12 p-2 rounded-lg border bg-card text-primary"/>,
+    category: 'Design',
+  },
+  {
+    id: 'notion',
+    name: 'notion',
+    description: 'notionDescription',
+    icon: <FileText className="w-12 h-12 p-2 rounded-lg border bg-card text-primary"/>,
+    category: 'Productivity',
+  },
+  {
+    id: 'linear',
+    name: 'linear',
+    description: 'linearDescription',
+    icon: <KanbanSquare className="w-12 h-12 p-2 rounded-lg border bg-card text-primary"/>,
+    category: 'Development',
+  },
+  {
+    id: 'discord',
+    name: 'discord',
+    description: 'discordDescription',
+    icon: <MessageSquare className="w-12 h-12 p-2 rounded-lg border bg-card text-primary"/>,
+    category: 'Communication',
+  },
+  {
+    id: 'zapier',
+    name: 'zapier',
+    description: 'zapierDescription',
+    icon: <Zap className="w-12 h-12 p-2 rounded-lg border bg-card text-primary"/>,
+    category: 'Automation',
   }
 ];
 
@@ -47,7 +82,12 @@ export default function IntegrationsHub() {
     'google-calendar': false,
     'github': false,
     'slack': false,
-    'n8n': false
+    'n8n': false,
+    'figma': false,
+    'notion': false,
+    'linear': false,
+    'discord': false,
+    'zapier': false,
   });
 
   const handleConnect = (id: IntegrationId) => {
@@ -103,4 +143,3 @@ export default function IntegrationsHub() {
     </div>
   );
 }
-
