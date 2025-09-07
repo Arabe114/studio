@@ -40,6 +40,7 @@
   "addEventFor": "Adicionar Evento para {{date}}",
   "eventTitle": "Título do Evento",
   "eventType": "Tipo de Evento",
+  "eventTime": "Hora do Evento",
   "personal": "Pessoal",
   "work": "Trabalho",
   "other": "Outro",

@@ -40,6 +40,7 @@
   "addEventFor": "Add Event for {{date}}",
   "eventTitle": "Event Title",
   "eventType": "Event Type",
+  "eventTime": "Event Time",
   "personal": "Personal",
   "work": "Work",
   "other": "Other",

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -14,7 +15,7 @@ import {
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { format, isSameDay } from 'date-fns';
+import { format, isSameDay, parse } from 'date-fns';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, Timestamp } from 'firebase/firestore';
 import { useLanguage } from '@/hooks/use-language';
@@ -57,10 +58,15 @@ export default function CalendarScheduler() {
     const formData = new FormData(e.currentTarget);
     const title = formData.get('title') as string;
     const type = formData.get('type') as 'work' | 'personal' | 'other';
+    const time = formData.get('time') as string; // HH:mm
 
     if (date && title) {
+        const [hours, minutes] = time.split(':').map(Number);
+        const eventDate = new Date(date);
+        eventDate.setHours(hours, minutes);
+
         await addDoc(collection(db, 'events'), {
-            date: Timestamp.fromDate(date),
+            date: Timestamp.fromDate(eventDate),
             title,
             type,
         });
@@ -68,9 +74,13 @@ export default function CalendarScheduler() {
     }
   };
 
-  const dayEvents = date ? events.filter(event => isSameDay(event.date, date)) : [];
+  const dayEvents = date 
+    ? events.filter(event => isSameDay(event.date, date)).sort((a, b) => a.date.getTime() - b.date.getTime())
+    : [];
+  
   const locale = language === 'pt' ? ptBR : undefined;
   const formattedDate = date ? format(date, 'PPP', { locale }) : '...';
+  const formattedTime = date ? format(date, 'HH:mm') : '12:00';
 
   return (
     <div>
@@ -99,7 +109,10 @@ export default function CalendarScheduler() {
             {dayEvents.length > 0 ? (
               dayEvents.map((event) => (
                 <div key={event.id} className="flex items-center justify-between p-2 rounded-lg bg-background">
-                  <span className="font-medium">{event.title}</span>
+                  <div>
+                    <span className="font-medium">{event.title}</span>
+                    <p className="text-sm text-muted-foreground">{format(event.date, 'p', { locale })}</p>
+                  </div>
                   <Badge
                     className={
                       event.type === 'work'
@@ -128,6 +141,10 @@ export default function CalendarScheduler() {
                   <div>
                     <Label htmlFor="title">{t('eventTitle')}</Label>
                     <Input id="title" name="title" required />
+                  </div>
+                   <div>
+                    <Label htmlFor="time">{t('eventTime')}</Label>
+                    <Input id="time" name="time" type="time" defaultValue={formattedTime} required />
                   </div>
                   <div>
                     <Label htmlFor="type">{t('eventType')}</Label>
