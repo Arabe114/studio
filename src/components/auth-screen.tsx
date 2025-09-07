@@ -88,7 +88,7 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
             ref={containerRef}
             onMouseMove={handleMouseMove}
             className={cn(
-                "group/auth relative z-10 w-full max-w-md rounded-xl bg-card/60 backdrop-blur-lg border border-primary/20 p-8 text-center space-y-6 transform transition-all duration-500 animate-neon-border-pulse",
+                "group/auth relative z-10 w-full max-w-md rounded-xl bg-card/60 backdrop-blur-lg border border-primary/20 p-8 text-center space-y-6 transform transition-all duration-500",
                 isSuccess && "animate-success-pop",
                 "before:absolute before:inset-0 before:rounded-xl before:bg-glow before:opacity-0 before:transition-opacity hover:before:opacity-100"
             )}>
