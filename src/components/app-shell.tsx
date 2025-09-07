@@ -148,9 +148,9 @@ export default function AppShell() {
                 ELN
              </div>
              <span className={cn(
-                 "text-lg font-semibold text-primary [text-shadow:0_0_8px_hsl(var(--primary)/_0.8)] ml-3 transition-opacity duration-200 ease-out",
+                 "text-lg font-semibold text-white [text-shadow:0_0_4px_#fff,0_0_10px_hsl(var(--primary))] ml-3 transition-opacity duration-200 ease-out",
                  "opacity-100"
-             )}>{t('eln')}</span>
+             )}>{t('allInOne')}</span>
         </div>
 
         <div className="flex flex-grow flex-col gap-2 w-full">
