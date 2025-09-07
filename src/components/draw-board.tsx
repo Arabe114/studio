@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useLayoutEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Stage, Layer, Line } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import type { Stage as StageType } from 'konva/lib/Stage';
@@ -30,9 +30,11 @@ export default function DrawBoard() {
   const stageRef = useRef<StageType>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [isMounted, setIsMounted] = useState(false);
   const { t } = useLanguage();
 
-  useLayoutEffect(() => {
+  useEffect(() => {
+    setIsMounted(true);
     if (containerRef.current) {
       setDimensions({
         width: containerRef.current.offsetWidth,
@@ -180,34 +182,36 @@ export default function DrawBoard() {
       </Card>
       
       <CardContent ref={containerRef} className="p-0 flex-grow rounded-lg border bg-background overflow-hidden">
-        <Stage
-          width={dimensions.width}
-          height={dimensions.height}
-          onMouseDown={handleMouseDown}
-          onMousemove={handleMouseMove}
-          onMouseup={handleMouseUp}
-          onTouchStart={handleMouseDown}
-          onTouchMove={handleMouseMove}
-          onTouchEnd={handleMouseUp}
-          ref={stageRef}
-        >
-          <Layer>
-            {lines.map((line, i) => (
-              <Line
-                key={i}
-                points={line.points}
-                stroke={line.color}
-                strokeWidth={line.strokeWidth}
-                tension={0.5}
-                lineCap="round"
-                lineJoin="round"
-                globalCompositeOperation={
-                  line.tool === 'eraser' ? 'destination-out' : 'source-over'
-                }
-              />
-            ))}
-          </Layer>
-        </Stage>
+        {isMounted && (
+            <Stage
+            width={dimensions.width}
+            height={dimensions.height}
+            onMouseDown={handleMouseDown}
+            onMousemove={handleMouseMove}
+            onMouseup={handleMouseUp}
+            onTouchStart={handleMouseDown}
+            onTouchMove={handleMouseMove}
+            onTouchEnd={handleMouseUp}
+            ref={stageRef}
+            >
+            <Layer>
+                {lines.map((line, i) => (
+                <Line
+                    key={i}
+                    points={line.points}
+                    stroke={line.color}
+                    strokeWidth={line.strokeWidth}
+                    tension={0.5}
+                    lineCap="round"
+                    lineJoin="round"
+                    globalCompositeOperation={
+                    line.tool === 'eraser' ? 'destination-out' : 'source-over'
+                    }
+                />
+                ))}
+            </Layer>
+            </Stage>
+        )}
       </CardContent>
     </div>
   );
