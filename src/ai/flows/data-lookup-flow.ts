@@ -25,7 +25,7 @@ const DataLookupInputSchema = z.object({
 export type DataLookupInput = z.infer<typeof DataLookupInputSchema>;
 
 const DataLookupOutputSchema = z.object({
-  result: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).describe("A structured object containing the lookup results. The keys should be descriptive labels (e.g., 'Is Valid', 'Country', 'Registrar'). The values can be strings, numbers, or booleans."),
+    result: z.any().describe("A structured object containing the lookup results. The keys should be descriptive labels (e.g., 'Is Valid', 'Country', 'Registrar'). The values can be strings, numbers, or booleans."),
 });
 export type DataLookupOutput = z.infer<typeof DataLookupOutputSchema>;
 
