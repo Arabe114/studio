@@ -69,7 +69,7 @@ export default {
         },
       },
       backgroundImage: {
-        'glow': "radial-gradient(circle at var(--mouse-x) var(--mouse-y), hsl(var(--primary) / 0.15), transparent 20%)",
+        'glow': "radial-gradient(circle at var(--mouse-x) var(--mouse-y), hsl(var(--primary) / 0.1), transparent 40%)",
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -127,8 +127,8 @@ export default {
         'shimmer': 'shimmer 4s linear infinite'
       },
       boxShadow: {
-        'neon-primary': '0 0 5px hsl(var(--primary) / 0.4), 0 0 10px hsl(var(--primary) / 0.4)',
-        'neon-accent': '0 0 5px hsl(var(--accent) / 0.4)',
+        'neon-primary': '0 0 2px hsl(var(--primary) / 0.3), 0 0 4px hsl(var(--primary) / 0.3)',
+        'neon-accent': '0 0 2px hsl(var(--accent) / 0.4)',
       },
       textShadow: {
         'neon-primary': '0 0 8px hsl(var(--primary) / 0.8)',
