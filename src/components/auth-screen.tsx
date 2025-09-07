@@ -14,12 +14,21 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
   const [error, setError] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
   const { t } = useLanguage();
 
   const CORRECT_PIN = '7984';
 
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if(!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+  };
+
   const handlePinChange = (index: number, value: string) => {
-    // Only allow single numeric digits
     if (value && !/^\d$/.test(value)) {
       return;
     }
@@ -29,12 +38,10 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
     setPin(newPin);
     setError('');
 
-    // Move to next input if a digit is entered
     if (value && index < 3) {
       inputsRef.current[index + 1]?.focus();
     }
     
-    // Check if pin is complete
     const completePin = newPin.join('');
     if (completePin.length === 4) {
       handleSubmit(completePin);
@@ -42,7 +49,6 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
   };
 
   const handleKeyDown = (index: number, e: KeyboardEvent<HTMLInputElement>) => {
-    // Move to previous input on backspace if current input is empty
     if (e.key === 'Backspace' && !pin[index] && index > 0) {
       inputsRef.current[index - 1]?.focus();
     }
@@ -67,7 +73,7 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
       setIsSuccess(true);
       setTimeout(() => {
         onAuthenticated();
-      }, 1000); // Wait for success animation
+      }, 1000); 
     } else {
       setError('Invalid PIN. Please try again.');
       setPin(['', '', '', '']);
@@ -78,10 +84,14 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
   return (
     <div className="flex h-screen w-full items-center justify-center bg-transparent">
         <AnimatedBackground />
-        <div className={cn(
-            "z-10 w-full max-w-md rounded-xl bg-card/60 backdrop-blur-lg border border-primary/20 p-8 text-center space-y-6 transform transition-all duration-500",
-            isSuccess && "animate-success-pop"
-        )}>
+        <div 
+            ref={containerRef}
+            onMouseMove={handleMouseMove}
+            className={cn(
+                "group/auth relative z-10 w-full max-w-md rounded-xl bg-card/60 backdrop-blur-lg border border-primary/20 p-8 text-center space-y-6 transform transition-all duration-500",
+                isSuccess && "animate-success-pop",
+                "before:absolute before:inset-0 before:rounded-xl before:bg-glow before:opacity-0 before:transition-opacity hover:before:opacity-100"
+            )}>
             <div className="mx-auto w-fit rounded-full bg-primary/10 p-4 border border-primary/20">
                 <Lock className="h-8 w-8 text-primary" />
             </div>

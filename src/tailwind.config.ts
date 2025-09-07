@@ -68,6 +68,9 @@ export default {
           ring: 'hsl(var(--sidebar-ring))',
         },
       },
+      backgroundImage: {
+        'glow': "radial-gradient(circle at var(--mouse-x) var(--mouse-y), hsl(var(--primary) / 0.15), transparent 20%)",
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
