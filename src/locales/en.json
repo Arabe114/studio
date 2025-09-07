@@ -157,5 +157,7 @@
   "aiProductivityAutomation": "AI Productivity & Automation",
   "aiDataCodingResearch": "AI Data, Coding & Research",
   "aiMeetingsCommunication": "AI Meetings & Communication",
-  "aiHealthWellness": "AI Health & Wellness"
+  "aiHealthWellness": "AI Health & Wellness",
+  "quickGenerators": "Quick Generators",
+  "quickGeneratorsDescription": "Your go-to collection for generating passwords, QR codes, and other utilities."
 }

@@ -22,6 +22,7 @@ import {
   Moon,
   PlugZap,
   PenTool,
+  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Dashboard from '@/components/dashboard';
@@ -34,6 +35,7 @@ import BudgetTracker from '@/components/budget-tracker';
 import AiTools from '@/components/ai-tools';
 import TechNews from '@/components/tech-news';
 import IntegrationsHub from '@/components/integrations-hub';
+import QuickGenerators from '@/components/quick-generators';
 import { useTheme } from 'next-themes';
 import {
   DropdownMenu,
@@ -65,12 +67,13 @@ type Module =
   | 'ai-tools'
   | 'tech-news'
   | 'integrations'
-  | 'draw-board';
+  | 'draw-board'
+  | 'quick-generators';
 
 interface NavItem {
   id: Module;
   icon: FC<React.ComponentProps<'svg'>>;
-  labelKey: "dashboard" | "knowledgeGraph" | "taskBoard" | "notesEditor" | "calendar" | "pomodoroTimer" | "budgetTracker" | "aiTools" | "techNews" | "integrationsHub" | "drawBoard";
+  labelKey: "dashboard" | "knowledgeGraph" | "taskBoard" | "notesEditor" | "calendar" | "pomodoroTimer" | "budgetTracker" | "aiTools" | "techNews" | "integrationsHub" | "drawBoard" | "quickGenerators";
 }
 
 const navItems: NavItem[] = [
@@ -83,6 +86,7 @@ const navItems: NavItem[] = [
   { id: 'budget', icon: PiggyBank, labelKey: 'budgetTracker' },
   { id: 'integrations', icon: PlugZap, labelKey: 'integrationsHub' },
   { id: 'draw-board', icon: PenTool, labelKey: 'drawBoard' },
+  { id: 'quick-generators', icon: Zap, labelKey: 'quickGenerators' },
   { id: 'ai-tools', icon: Cpu, labelKey: 'aiTools' },
   { id: 'tech-news', icon: Newspaper, labelKey: 'techNews' },
 ];
@@ -112,6 +116,8 @@ export default function AppShell() {
         return <IntegrationsHub />;
       case 'draw-board':
         return <DrawBoard />;
+      case 'quick-generators':
+        return <QuickGenerators />;
       case 'ai-tools':
         return <AiTools />;
       case 'tech-news':
