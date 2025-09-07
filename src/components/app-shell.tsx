@@ -167,14 +167,13 @@ export default function AppShell() {
                 'hover:text-accent-foreground hover:shadow-neon-accent',
                  activeModule === item.id
                   ? 'bg-accent text-accent-foreground shadow-neon-accent'
-                  : 'text-muted-foreground hover:bg-gradient-to-r from-primary via-accent to-primary hover:bg-[length:200%_100%] hover:animate-shimmer-fast'
+                  : 'text-muted-foreground hover:bg-gradient-to-r from-primary/10 via-accent/20 to-primary/10'
               )}
               title={t(item.labelKey)}
             >
               <item.icon className="h-5 w-5 shrink-0 transition-transform duration-300 group-hover:rotate-12" />
               <span className={cn(
-                "truncate transition-colors",
-                "group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-primary-foreground group-hover:to-white group-hover:bg-[length:200%_100%] group-hover:animate-shimmer-fast group-hover:bg-clip-text group-hover:text-transparent"
+                "truncate transition-colors group-hover:text-primary-foreground group-hover:text-shadow-neon-primary"
                )}>
                 {t(item.labelKey)}
               </span>

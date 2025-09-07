@@ -108,10 +108,6 @@ export default {
           'from': { 'background-position': '200% 0' },
           'to': { 'background-position': '-200% 0' },
         },
-        'rotate-in': {
-          'from': { transform: 'rotate(0deg)' },
-          'to': { transform: 'rotate(15deg)' },
-        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -120,7 +116,6 @@ export default {
         'success-pop': 'success-pop 0.3s ease-out',
         'shimmer': 'shimmer 4s linear infinite',
         'shimmer-fast': 'shimmer 2s linear infinite',
-        'rotate-in': 'rotate-in 0.3s ease-out forwards',
       },
       boxShadow: {
         'neon-primary': '0 0 1px hsl(var(--primary) / 0.3), 0 0 2px hsl(var(--primary) / 0.3)',
