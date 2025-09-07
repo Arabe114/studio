@@ -21,7 +21,6 @@ export default function EnglishLearning() {
   const [input, setInput] = useState({
     vocabulary: '',
     corrector: '',
-    pronunciation: '',
   });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ResultState>(null);
@@ -44,7 +43,7 @@ export default function EnglishLearning() {
         query = input.corrector;
         toolKey = 'corrector';
     } else {
-        query = input.pronunciation;
+        query = input.vocabulary; // Use the same input for pronunciation
     }
     
     if (!query) return;
@@ -87,6 +86,11 @@ export default function EnglishLearning() {
                 {result.synonyms.map(syn => <Badge key={syn} variant="secondary">{syn}</Badge>)}
             </div>
         </div>
+        {!loading && (
+          <Button onClick={() => handleSubmit('pronunciation')} variant="outline" size="sm" className="mt-4">
+              <Volume2 className="mr-2"/> {t('speak')} &quot;{input.vocabulary}&quot;
+          </Button>
+        )}
       </div>
     );
   };
@@ -149,10 +153,13 @@ export default function EnglishLearning() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); setResult(null); }} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-4">
-          <TabsTrigger value="vocabulary"><BookText className="mr-2"/>{t('vocabularyBuilder')}</TabsTrigger>
-          <TabsTrigger value="corrector"><SpellCheck className="mr-2"/>{t('sentenceCorrector')}</TabsTrigger>
-          <TabsTrigger value="pronunciation"><Volume2 className="mr-2"/>{t('pronunciationHelper')}</TabsTrigger>
+        <TabsList className="mb-4 bg-transparent p-0 justify-start gap-2 h-auto">
+          <TabsTrigger value="vocabulary" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-neon-accent hover:bg-primary/10 transition-all duration-300 py-2 px-4 rounded-lg">
+            <BookText className="mr-2"/>{t('vocabularyBuilder')}
+          </TabsTrigger>
+          <TabsTrigger value="corrector" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-neon-accent hover:bg-primary/10 transition-all duration-300 py-2 px-4 rounded-lg">
+            <SpellCheck className="mr-2"/>{t('sentenceCorrector')}
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="vocabulary" className="mt-0">
@@ -180,32 +187,14 @@ export default function EnglishLearning() {
                 <CardDescription>{t('sentenceCorrectorDescription')}</CardDescription>
              </CardHeader>
              <CardContent>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2">
                     <Textarea placeholder={t('enterASentence')} value={input.corrector} onChange={e => handleInputChange('corrector', e.target.value)} />
-                    <Button onClick={() => handleSubmit('corrector')} disabled={loading}>
+                    <Button onClick={() => handleSubmit('corrector')} disabled={loading} className="w-fit self-end">
                         {loading && <Loader2 className="animate-spin mr-2"/>} {t('correct')}
                     </Button>
                 </div>
              </CardContent>
              {renderResultArea('corrector')}
-           </Card>
-        </TabsContent>
-        
-        <TabsContent value="pronunciation" className="mt-0">
-           <Card className="rounded-t-none">
-             <CardHeader>
-                <CardTitle>{t('pronunciationHelper')}</CardTitle>
-                <CardDescription>{t('pronunciationHelperDescription')}</CardDescription>
-             </CardHeader>
-             <CardContent>
-                <div className="flex gap-2">
-                    <Input placeholder={t('enterWordOrSentence')} value={input.pronunciation} onChange={e => handleInputChange('pronunciation', e.target.value)} />
-                    <Button onClick={() => handleSubmit('pronunciation')} disabled={loading}>
-                        {loading && <Loader2 className="animate-spin mr-2"/>} {t('speak')}
-                    </Button>
-                </div>
-             </CardContent>
-             {renderResultArea('pronunciation')}
            </Card>
         </TabsContent>
 
