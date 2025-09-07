@@ -115,7 +115,7 @@ export default function AppShell() {
         <div
           className={cn(
             'mb-4 flex h-10 shrink-0 items-center gap-3',
-             isSidebarExpanded ? 'w-full justify-start' : 'w-full justify-center'
+             isSidebarExpanded ? 'w-full justify-start' : 'justify-center'
           )}
         >
              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-neon-primary hover:shadow-lg hover:scale-105 transition-all duration-200">
