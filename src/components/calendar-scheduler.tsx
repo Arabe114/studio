@@ -16,10 +16,10 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { format, isSameDay, parse } from 'date-fns';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, Timestamp } from 'firebase/firestore';
 import { useLanguage } from '@/hooks/use-language';
 import { ptBR } from 'date-fns/locale';
+import { useStorage } from '@/hooks/use-storage';
+import { onSnapshot, addDoc } from '@/lib/storage';
 
 type Event = {
   id: string;
@@ -33,25 +33,26 @@ export default function CalendarScheduler() {
   const [events, setEvents] = useState<Event[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { t, language } = useLanguage();
+  const { storageMode } = useStorage();
 
   useEffect(() => {
-    const q = collection(db, 'events');
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const eventsData: Event[] = [];
-      querySnapshot.forEach((doc) => {
+    const unsubscribe = onSnapshot('events', (snapshot) => {
+      const eventsData: Event[] = snapshot.map(doc => {
         const data = doc.data();
-        eventsData.push({ 
+        return { 
             id: doc.id,
             title: data.title,
             type: data.type,
-            date: (data.date as Timestamp).toDate(),
-        });
+            date: new Date(data.date),
+        };
       });
       setEvents(eventsData);
     });
 
-    return () => unsubscribe();
-  }, []);
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [storageMode]);
 
   const handleAddEvent = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -65,8 +66,8 @@ export default function CalendarScheduler() {
         const eventDate = new Date(date);
         eventDate.setHours(hours, minutes);
 
-        await addDoc(collection(db, 'events'), {
-            date: Timestamp.fromDate(eventDate),
+        await addDoc('events', {
+            date: eventDate.toISOString(),
             title,
             type,
         });

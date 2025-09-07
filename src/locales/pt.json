@@ -207,5 +207,10 @@
   "companyPlaceholder": "ex: Microsoft",
   "usernameSearch": "Busca de Nome de Usuário",
   "usernameSearchDescription": "Verifique a disponibilidade de um nome de usuário em redes sociais.",
-  "usernamePlaceholder": "ex: usuario-incrivel"
+  "usernamePlaceholder": "ex: usuario-incrivel",
+  "language": "Idioma",
+  "theme": "Tema",
+  "storage": "Armazenamento de Dados",
+  "firebase": "Firebase (Nuvem)",
+  "local": "Local (Navegador)"
 }

@@ -12,9 +12,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from './ui/label';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { useLanguage } from '@/hooks/use-language';
+import { useStorage } from '@/hooks/use-storage';
+import { onSnapshot, addDoc, deleteDoc, updateDoc } from '@/lib/storage';
 
 type TimerMode = 'work' | 'break';
 
@@ -34,20 +34,20 @@ export default function PomodoroTimer() {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [editingTimer, setEditingTimer] = useState<Timer | null>(null);
     const { t } = useLanguage();
+    const { storageMode } = useStorage();
 
     useEffect(() => {
-        const q = collection(db, 'timers');
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const timersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Timer));
+        const unsubscribe = onSnapshot('timers', (snapshot) => {
+            const timersData = snapshot.map(doc => ({ id: doc.id, ...doc.data() } as Timer));
             setTimers(timersData);
         });
         return () => {
              Object.values(intervalRefs.current).forEach(interval => {
                 if (interval) clearInterval(interval);
             });
-            unsubscribe();
+            if(unsubscribe) unsubscribe();
         };
-    }, []);
+    }, [storageMode]);
 
     // Effect to handle countdown
     useEffect(() => {
@@ -60,8 +60,7 @@ export default function PomodoroTimer() {
                             const currentTimer = currentTimers.find(t => t.id === timer.id);
                             if (currentTimer && currentTimer.timeLeft > 0) {
                                 const newTimeLeft = currentTimer.timeLeft - 1;
-                                const timerRef = doc(db, 'timers', timer.id);
-                                updateDoc(timerRef, { timeLeft: newTimeLeft });
+                                updateDoc('timers', timer.id, { timeLeft: newTimeLeft });
                             }
                             return currentTimers;
                         })
@@ -80,7 +79,7 @@ export default function PomodoroTimer() {
                 if (interval) clearInterval(interval);
             });
         };
-    }, [timers.map(t => t.isActive).join(',')]); // Rerun when any timer is toggled
+    }, [timers]); // Rerun when any timer is toggled
 
     // Effect to handle timer completion
     useEffect(() => {
@@ -90,29 +89,26 @@ export default function PomodoroTimer() {
                 const newMode = timer.mode === 'work' ? 'break' : 'work';
                 const newTimeLeft = newMode === 'work' ? timer.workDuration : timer.breakDuration;
                 
-                const timerRef = doc(db, 'timers', timer.id);
-                await updateDoc(timerRef, {
+                await updateDoc('timers', timer.id, {
                     isActive: false, // Stop the timer
                     mode: newMode,
                     timeLeft: newTimeLeft,
                 });
             }
         });
-    }, [timers.map(t => t.timeLeft).join(',')]); // Rerun when any timer's time changes
+    }, [timers]);
 
 
     const toggleTimer = async (id: string) => {
         const timer = timers.find(t => t.id === id);
         if (!timer) return;
-        const timerRef = doc(db, 'timers', id);
-        await updateDoc(timerRef, { isActive: !timer.isActive });
+        await updateDoc('timers', id, { isActive: !timer.isActive });
     };
 
     const resetTimer = async (id: string) => {
         const timer = timers.find(t => t.id === id);
         if (!timer) return;
-        const timerRef = doc(db, 'timers', id);
-        await updateDoc(timerRef, {
+        await updateDoc('timers', id, {
             isActive: false,
             mode: 'work',
             timeLeft: timer.workDuration
@@ -120,7 +116,7 @@ export default function PomodoroTimer() {
     };
 
     const addTimer = async () => {
-        await addDoc(collection(db, 'timers'), {
+        await addDoc('timers', {
             name: 'New Timer',
             workDuration: 25 * 60,
             breakDuration: 5 * 60,
@@ -135,17 +131,16 @@ export default function PomodoroTimer() {
             clearInterval(intervalRefs.current[id]!);
             intervalRefs.current[id] = null;
         }
-        await deleteDoc(doc(db, "timers", id));
+        await deleteDoc("timers", id);
     };
 
     const handleEditSave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingTimer) return;
         
-        const timerRef = doc(db, 'timers', editingTimer.id);
         const workDuration = editingTimer.workDuration;
 
-        await updateDoc(timerRef, {
+        await updateDoc('timers', editingTimer.id, {
             name: editingTimer.name,
             workDuration: workDuration,
             breakDuration: editingTimer.breakDuration,

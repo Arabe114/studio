@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import ForceGraph from './force-graph';
 import type { Node as GraphNode, Link as GraphLink } from './force-graph';
 import { Plus, Link as LinkIcon, Trash2, LocateFixed, LayoutGrid, Workflow } from 'lucide-react';
@@ -27,6 +25,8 @@ import {
 import { cn } from '@/lib/utils';
 import { CheckCircle, Circle, RefreshCw } from 'lucide-react';
 import { useLanguage } from '@/hooks/use-language';
+import { useStorage } from '@/hooks/use-storage';
+import { onSnapshot, addDoc, deleteDoc, updateDoc, writeBatch } from '@/lib/storage';
 
 type TaskStatus = 'todo' | 'in-progress' | 'done';
 type ViewMode = 'flow' | 'board';
@@ -69,6 +69,7 @@ export default function KanbanBoard() {
   const [centerView, setCenterView] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('flow');
   const { t } = useLanguage();
+  const { storageMode } = useStorage();
 
   const statusToTitle: Record<TaskStatus, string> = {
     'todo': t('toDo'),
@@ -77,12 +78,14 @@ export default function KanbanBoard() {
   }
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'tasks'), (snapshot) => {
-      const fetchedTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
+    const unsubscribe = onSnapshot('tasks', (snapshot) => {
+      const fetchedTasks = snapshot.map(doc => ({ id: doc.id, ...doc.data() } as Task));
       setTasks(fetchedTasks);
     });
-    return unsubscribe;
-  }, []);
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [storageMode]);
 
   useEffect(() => {
     const nodes = tasks.map(task => ({
@@ -125,16 +128,14 @@ export default function KanbanBoard() {
       const firstTask = tasks.find(t => t.id === firstLinkNode.id);
       
       if (firstTask && !firstTask.dependencies.includes(secondLinkNode.id)) {
-        const taskRef = doc(db, 'tasks', firstTask.id);
-        updateDoc(taskRef, {
+        updateDoc('tasks', firstTask.id, {
           dependencies: [...firstTask.dependencies, secondLinkNode.id]
         });
       }
       // Also link target to source
       const secondTask = tasks.find(t => t.id === secondLinkNode.id);
       if (secondTask && !secondTask.dependencies.includes(firstLinkNode.id)) {
-        const taskRef = doc(db, 'tasks', secondTask.id);
-        updateDoc(taskRef, {
+        updateDoc('tasks', secondTask.id, {
             dependencies: [...secondTask.dependencies, firstLinkNode.id]
         });
       }
@@ -158,8 +159,7 @@ export default function KanbanBoard() {
   }
 
   const handleNodeDrag = async (nodeId: string, newPosition: { x: number, y: number }) => {
-      const taskRef = doc(db, 'tasks', nodeId);
-      await updateDoc(taskRef, { x: newPosition.x, y: newPosition.y });
+      await updateDoc('tasks', nodeId, { x: newPosition.x, y: newPosition.y });
   };
   
   const handleSaveTask = async (e: React.FormEvent) => {
@@ -174,10 +174,9 @@ export default function KanbanBoard() {
     };
 
     if (sheetTask.id) { // Editing existing task
-        const taskRef = doc(db, 'tasks', sheetTask.id);
-        await updateDoc(taskRef, taskData);
+        await updateDoc('tasks', sheetTask.id, taskData);
     } else { // Creating new task
-        await addDoc(collection(db, 'tasks'), taskData);
+        await addDoc('tasks', taskData);
     }
     
     setIsSheetOpen(false);
@@ -193,23 +192,21 @@ export default function KanbanBoard() {
   const handleDeleteTask = async () => {
     if (!sheetTask || !sheetTask.id) return;
     
-    const batch = writeBatch(db);
     const taskIdToDelete = sheetTask.id;
 
     // Delete the task itself
-    const taskRef = doc(db, 'tasks', taskIdToDelete);
-    batch.delete(taskRef);
-
+    await deleteDoc('tasks', taskIdToDelete);
+    
     // Remove this task from other tasks' dependency lists
+    const batch: Promise<any>[] = [];
     tasks.forEach(task => {
         if (task.dependencies.includes(taskIdToDelete)) {
-            const otherTaskRef = doc(db, 'tasks', task.id);
             const newDeps = task.dependencies.filter(dep => dep !== taskIdToDelete);
-            batch.update(otherTaskRef, { dependencies: newDeps });
+            batch.push(updateDoc('tasks', task.id, { dependencies: newDeps }));
         }
     });
     
-    await batch.commit();
+    await Promise.all(batch);
     setIsSheetOpen(false);
     setSelectedTask(null);
     setSheetTask(null);

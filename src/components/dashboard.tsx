@@ -2,16 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { useLanguage } from "@/hooks/use-language";
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query, where, Timestamp } from 'firebase/firestore';
+import { useStorage } from '@/hooks/use-storage';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { BrainCircuit, CheckCircle, Circle, FileText, ListTodo, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { onSnapshot, query, where } from '@/lib/storage';
 
 type TaskStatus = 'todo' | 'in-progress' | 'done';
 type Task = { id: string; status: TaskStatus; };
-type Event = { id: string; title: string; date: Timestamp; };
+type Event = { id: string; title: string; date: string; };
 type Transaction = { id: string; type: 'income' | 'expense'; amount: number; };
 type Module =
   | 'dashboard'
@@ -30,15 +30,16 @@ interface DashboardProps {
 
 export default function Dashboard({ setActiveModule }: DashboardProps) {
   const { t, language } = useLanguage();
+  const { storageMode } = useStorage();
   const [taskCounts, setTaskCounts] = useState({ todo: 0, 'in-progress': 0, done: 0 });
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [balance, setBalance] = useState(0);
 
   useEffect(() => {
     // Fetch tasks
-    const tasksUnsub = onSnapshot(collection(db, 'tasks'), (snapshot) => {
+    const tasksUnsub = onSnapshot('tasks', (snapshot) => {
       const counts: { [key in TaskStatus]: number } = { todo: 0, 'in-progress': 0, done: 0 };
-      snapshot.docs.forEach(doc => {
+      snapshot.forEach(doc => {
         const task = doc.data() as Task;
         if (task.status in counts) {
           counts[task.status]++;
@@ -49,19 +50,19 @@ export default function Dashboard({ setActiveModule }: DashboardProps) {
 
     // Fetch upcoming events
     const today = new Date();
-    const q = query(collection(db, 'events'), where('date', '>=', Timestamp.fromDate(today)));
+    const q = query('events', where('date', '>=', today.toISOString()));
     const eventsUnsub = onSnapshot(q, (snapshot) => {
-      const events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Event))
-        .sort((a, b) => a.date.seconds - b.date.seconds)
+      const events = snapshot.map(doc => ({ id: doc.id, ...doc.data() } as Event))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
         .slice(0, 3); // Get top 3 upcoming
       setUpcomingEvents(events);
     });
 
     // Fetch transactions
-    const transUnsub = onSnapshot(collection(db, 'transactions'), (snapshot) => {
+    const transUnsub = onSnapshot('transactions', (snapshot) => {
         let income = 0;
         let expenses = 0;
-        snapshot.docs.forEach(doc => {
+        snapshot.forEach(doc => {
             const t = doc.data() as Transaction;
             if (t.type === 'income') {
                 income += t.amount;
@@ -73,11 +74,11 @@ export default function Dashboard({ setActiveModule }: DashboardProps) {
     });
 
     return () => {
-      tasksUnsub();
-      eventsUnsub();
-      transUnsub();
+      if (tasksUnsub) tasksUnsub();
+      if (eventsUnsub) eventsUnsub();
+      if (transUnsub) transUnsub();
     };
-  }, []);
+  }, [storageMode]);
   
   const locale = language === 'pt' ? ptBR : undefined;
 
@@ -128,7 +129,7 @@ export default function Dashboard({ setActiveModule }: DashboardProps) {
                     upcomingEvents.map(event => (
                         <div key={event.id} className="text-sm">
                             <p className="font-semibold">{event.title}</p>
-                            <p className="text-muted-foreground">{format(event.date.toDate(), 'PPP', { locale })}</p>
+                            <p className="text-muted-foreground">{format(new Date(event.date), 'PPP', { locale })}</p>
                         </div>
                     ))
                 ) : (

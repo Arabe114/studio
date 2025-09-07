@@ -5,9 +5,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bold, Italic, Upload } from "lucide-react";
-import { db } from '@/lib/firebase';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useLanguage } from '@/hooks/use-language';
+import { useStorage } from '@/hooks/use-storage';
+import { onDoc, setDoc } from '@/lib/storage';
 
 export default function NotesEditor() {
   const [noteContent, setNoteContent] = useState("");
@@ -16,28 +16,29 @@ export default function NotesEditor() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
   const { t } = useLanguage();
+  const { storageMode } = useStorage();
 
   useEffect(() => {
-    const noteRef = doc(db, 'notes', 'main-note');
-    const unsubscribe = onSnapshot(noteRef, (doc) => {
-      if (doc.exists()) {
+    const unsubscribe = onDoc('notes', 'main-note', (doc) => {
+      if (doc) {
         const data = doc.data();
         setNoteTitle(data.title || '');
         setNoteContent(data.content || '');
       } else {
         // Create the doc if it doesn't exist
-        setDoc(noteRef, { title: "My Note", content: "Start writing here..." });
+        setDoc('notes', 'main-note', { title: "My Note", content: "Start writing here..." });
       }
     });
 
-    return () => unsubscribe();
-  }, []);
+    return () => {
+      if(unsubscribe) unsubscribe();
+    };
+  }, [storageMode]);
 
   const saveData = (title: string, content: string) => {
       if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
       debounceTimeout.current = setTimeout(() => {
-        const noteRef = doc(db, 'notes', 'main-note');
-        setDoc(noteRef, { title, content }, { merge: true });
+        setDoc('notes', 'main-note', { title, content }, { merge: true });
       }, 500);
   }
 

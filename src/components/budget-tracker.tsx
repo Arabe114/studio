@@ -8,9 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, Timestamp } from 'firebase/firestore';
 import { useLanguage } from '@/hooks/use-language';
+import { useStorage } from '@/hooks/use-storage';
+import { onSnapshot, addDoc } from '@/lib/storage';
 
 
 type TransactionType = 'income' | 'expense';
@@ -29,37 +29,38 @@ export default function BudgetTracker() {
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<TransactionType>('expense');
   const { t } = useLanguage();
+  const { storageMode } = useStorage();
 
   useEffect(() => {
-    const q = collection(db, 'transactions');
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const transactionsData: Transaction[] = [];
-      querySnapshot.forEach((doc) => {
+    const unsubscribe = onSnapshot('transactions', (snapshot) => {
+      const transactionsData: Transaction[] = snapshot.map(doc => {
         const data = doc.data();
-        transactionsData.push({ 
+        return { 
           id: doc.id, 
           description: data.description,
           amount: data.amount,
           type: data.type,
-          date: data.date instanceof Timestamp ? data.date.toDate() : new Date()
-        } as Transaction);
+          date: new Date(data.date)
+        } as Transaction
       });
       transactionsData.sort((a,b) => b.date.getTime() - a.date.getTime());
       setTransactions(transactionsData);
     });
 
-    return () => unsubscribe();
-  }, []);
+    return () => {
+      if(unsubscribe) unsubscribe();
+    };
+  }, [storageMode]);
 
   const handleAddTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!description || !amount) return;
 
-    await addDoc(collection(db, 'transactions'), {
+    await addDoc('transactions', {
         description,
         amount: parseFloat(amount),
         type,
-        date: new Date(),
+        date: new Date().toISOString(),
     });
 
     setDescription('');

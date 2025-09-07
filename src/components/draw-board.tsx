@@ -12,8 +12,8 @@ import { Label } from './ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { useLanguage } from '@/hooks/use-language';
 import { Skeleton } from './ui/skeleton';
-import { db } from '@/lib/firebase';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { useStorage } from '@/hooks/use-storage';
+import { onDoc, setDoc } from '@/lib/storage';
 
 
 type Line = {
@@ -44,6 +44,7 @@ export default function DrawBoard() {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const { t } = useLanguage();
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const { storageMode } = useStorage();
   
   const [konva, setKonva] = useState<KonvaComponents>(null);
 
@@ -59,9 +60,8 @@ export default function DrawBoard() {
   }, []);
   
   useEffect(() => {
-    const drawingRef = doc(db, 'drawings', 'main-drawing');
-    const unsubscribe = onSnapshot(drawingRef, (doc) => {
-        if(doc.exists()) {
+    const unsubscribe = onDoc('drawings', 'main-drawing', (doc) => {
+        if(doc) {
             const data = doc.data();
             // To prevent overwriting local state if user is drawing while a remote change comes in.
             // A more robust solution might use timestamps or versioning.
@@ -69,12 +69,15 @@ export default function DrawBoard() {
                 setLines(data.lines || []);
             }
         } else {
-             setDoc(drawingRef, { lines: [] });
+            // Document doesn't exist, create it
+            setDoc('drawings', 'main-drawing', { lines: [] });
         }
     });
 
-    return () => unsubscribe();
-  }, []);
+    return () => {
+      if(unsubscribe) unsubscribe();
+    };
+  }, [storageMode]);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -100,8 +103,7 @@ export default function DrawBoard() {
   const saveData = (newLines: Line[]) => {
       if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
       debounceTimeout.current = setTimeout(() => {
-          const drawingRef = doc(db, 'drawings', 'main-drawing');
-          setDoc(drawingRef, { lines: newLines }, { merge: true });
+          setDoc('drawings', 'main-drawing', { lines: newLines }, { merge: true });
       }, 1000); // Save 1 second after user stops drawing
   };
 

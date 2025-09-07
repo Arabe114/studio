@@ -207,5 +207,10 @@
   "companyPlaceholder": "e.g., Microsoft",
   "usernameSearch": "Username Search",
   "usernameSearchDescription": "Check for username availability across social networks.",
-  "usernamePlaceholder": "e.g., awesome-user"
+  "usernamePlaceholder": "e.g., awesome-user",
+  "language": "Language",
+  "theme": "Theme",
+  "storage": "Data Storage",
+  "firebase": "Firebase (Cloud)",
+  "local": "Local (Browser)"
 }

@@ -24,6 +24,8 @@ import {
   PenTool,
   Zap,
   DatabaseZap,
+  Database,
+  Computer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Dashboard from '@/components/dashboard';
@@ -44,6 +46,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
 import { Button } from './ui/button';
 import AnimatedBackground from './animated-background';
@@ -51,6 +54,7 @@ import { useLanguage } from '@/hooks/use-language';
 import dynamic from 'next/dynamic';
 import { Skeleton } from './ui/skeleton';
 import DataLookup from './data-lookup';
+import { useStorage } from '@/hooks/use-storage';
 
 
 const DrawBoard = dynamic(() => import('@/components/draw-board'), {
@@ -100,6 +104,7 @@ export default function AppShell() {
   const [activeModule, setActiveModule] = useState<Module>('dashboard');
   const { setTheme } = useTheme();
   const { t, setLanguage } = useLanguage();
+  const { storageMode, setStorageMode } = useStorage();
 
   const renderModule = () => {
     switch (activeModule) {
@@ -185,7 +190,8 @@ export default function AppShell() {
                 <span className="truncate">{t('settings')}</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="right" align="end">
+            <DropdownMenuContent side="right" align="end" className="w-56">
+               <DropdownMenuLabel>{t('language')}</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => setLanguage('en')}>
                 <span>{t('english')}</span>
               </DropdownMenuItem>
@@ -193,6 +199,7 @@ export default function AppShell() {
                 <span>{t('portuguese')}</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              <DropdownMenuLabel>{t('theme')}</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => setTheme("light")}>
                 <Sun className="mr-2 h-4 w-4" />
                 <span>{t('lightTheme')}</span>
@@ -204,6 +211,16 @@ export default function AppShell() {
                <DropdownMenuItem onClick={() => setTheme("system")}>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>{t('systemTheme')}</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>{t('storage')}</DropdownMenuLabel>
+               <DropdownMenuItem onClick={() => setStorageMode('firebase')}>
+                <Database className="mr-2 h-4 w-4" />
+                <span>{t('firebase')}</span>
+              </DropdownMenuItem>
+               <DropdownMenuItem onClick={() => setStorageMode('local')}>
+                <Computer className="mr-2 h-4 w-4" />
+                <span>{t('local')}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
