@@ -44,10 +44,8 @@ export default function PomodoroTimer() {
             setTimers(timersData);
         });
         
-        // This cleanup runs when the component unmounts from the page completely,
-        // but not when navigating between modules.
         return () => {
-             Object.values(intervalRefs.current).forEach(interval => {
+            Object.values(intervalRefs.current).forEach(interval => {
                 if (interval) clearInterval(interval);
             });
             if(unsubscribe) unsubscribe();
@@ -66,13 +64,17 @@ export default function PomodoroTimer() {
         // Create interval if timer is active and no interval exists
         if (timer.isActive && !intervalRefs.current[timer.id]) {
           intervalRefs.current[timer.id] = setInterval(() => {
-             // Use a function to get the latest state to avoid stale closures
              setTimers(currentTimers => {
                 const latestTimer = currentTimers.find(t => t.id === timer.id);
                 if (latestTimer && latestTimer.timeLeft > 0) {
-                    updateDoc('timers', timer.id, { timeLeft: latestTimer.timeLeft - 1 });
+                    const newTimeLeft = latestTimer.timeLeft - 1;
+                    // Directly update DB, listener will update state
+                    updateDoc('timers', timer.id, { timeLeft: newTimeLeft });
+                    
+                    // Optimistically update local state as well for smoother UI
+                    return currentTimers.map(t => t.id === timer.id ? {...t, timeLeft: newTimeLeft} : t);
                 }
-                return currentTimers; // Return unchanged state to avoid re-render from here
+                return currentTimers; 
              });
           }, 1000);
         }
@@ -93,7 +95,6 @@ export default function PomodoroTimer() {
     useEffect(() => {
         timers.forEach(async timer => {
             if (timer.timeLeft <= 0 && timer.isActive) {
-                // Stop the interval for this timer immediately
                 if (intervalRefs.current[timer.id]) {
                     clearInterval(intervalRefs.current[timer.id]!);
                     intervalRefs.current[timer.id] = null;
@@ -103,8 +104,6 @@ export default function PomodoroTimer() {
                 const newMode = timer.mode === 'work' ? 'break' : 'work';
                 const newTimeLeft = newMode === 'work' ? timer.workDuration : timer.breakDuration;
                 
-                // Update the timer to switch mode and stop it.
-                // The user can restart it for the new session.
                 await updateDoc('timers', timer.id, {
                     isActive: false, 
                     mode: newMode,
@@ -181,6 +180,13 @@ export default function PomodoroTimer() {
         return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     };
 
+    const handleDurationChange = (field: 'workDuration' | 'breakDuration', value: string) => {
+        if (!editingTimer) return;
+        const minutes = parseInt(value, 10);
+        const seconds = isNaN(minutes) ? 0 : minutes * 60;
+        setEditingTimer({...editingTimer, [field]: seconds });
+    };
+
   return (
     <div className="space-y-6">
        <div className="flex justify-between items-center">
@@ -236,11 +242,11 @@ export default function PomodoroTimer() {
                         </div>
                         <div>
                             <Label htmlFor="work-duration">{t('workDuration')}</Label>
-                            <Input id="work-duration" type="number" value={editingTimer.workDuration / 60} onChange={(e) => setEditingTimer({...editingTimer, workDuration: parseInt(e.target.value, 10) * 60 })} />
+                            <Input id="work-duration" type="number" value={editingTimer.workDuration / 60} onChange={(e) => handleDurationChange('workDuration', e.target.value)} />
                         </div>
                         <div>
                             <Label htmlFor="break-duration">{t('breakDuration')}</Label>
-                            <Input id="break-duration" type="number" value={editingTimer.breakDuration / 60} onChange={(e) => setEditingTimer({...editingTimer, breakDuration: parseInt(e.target.value, 10) * 60})} />
+                            <Input id="break-duration" type="number" value={editingTimer.breakDuration / 60} onChange={(e) => handleDurationChange('breakDuration', e.target.value)} />
                         </div>
                         <Button type="submit"><Check className="mr-2"/>{t('saveChanges')}</Button>
                     </form>
