@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -113,15 +114,15 @@ export default function AppShell() {
         <div
           className={cn(
             'mb-4 flex h-10 shrink-0 items-center',
-            isSidebarExpanded ? 'w-full ' : 'w-10 justify-center'
+            isSidebarExpanded ? 'w-full ' : 'w-full justify-center'
           )}
         >
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-neon-primary hover:shadow-lg hover:scale-105 transition-all duration-200">
             {t('eln')}
           </div>
            <span className={cn(
-               "ml-3 text-lg font-semibold text-primary [text-shadow:0_0_8px_hsl(var(--primary)/_0.8)] transition-opacity duration-300",
-               isSidebarExpanded ? "opacity-100 animate-in fade-in slide-in-from-left-4" : "opacity-0"
+               "ml-3 text-lg font-semibold text-primary [text-shadow:0_0_8px_hsl(var(--primary)/_0.8)] transition-opacity ease-in-out",
+               isSidebarExpanded ? "opacity-100 duration-300 animate-in fade-in slide-in-from-left-4" : "opacity-0 duration-200"
            )}>{t('eln')}</span>
         </div>
 
