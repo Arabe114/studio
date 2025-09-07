@@ -124,11 +124,11 @@ export default {
         'success-pop': 'success-pop 0.3s ease-out',
         'neon-pulse': 'neon-pulse 4s ease-in-out infinite',
         'neon-border-pulse': 'neon-border-pulse 3s ease-in-out infinite',
-        'shimmer': 'shimmer 2s linear infinite'
+        'shimmer': 'shimmer 4s linear infinite'
       },
       boxShadow: {
-        'neon-primary': '0 0 8px hsl(var(--primary) / 0.5), 0 0 12px hsl(var(--primary) / 0.5)',
-        'neon-accent': '0 0 8px hsl(var(--accent) / 0.5)',
+        'neon-primary': '0 0 5px hsl(var(--primary) / 0.4), 0 0 10px hsl(var(--primary) / 0.4)',
+        'neon-accent': '0 0 5px hsl(var(--accent) / 0.4)',
       },
       textShadow: {
         'neon-primary': '0 0 8px hsl(var(--primary) / 0.8)',
