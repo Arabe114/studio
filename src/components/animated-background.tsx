@@ -65,11 +65,11 @@ const AnimatedBackground = () => {
                     const dy = this.y - animatedMousePosition.current.y;
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     
-                    const maxSwell = 250;
+                    const maxSwell = 500; // Increased range
                     // Using a cosine easing function for a smoother falloff
                     const swellFactor = Math.max(0, 1 - distance / maxSwell);
                     const easedSwell = (1 - Math.cos(swellFactor * Math.PI)) / 2;
-                    const swellAmount = easedSwell * 60;
+                    const swellAmount = easedSwell * 100; // Increased swell height
                     
                     const waveY = this.y + Math.sin(i * this.length + this.phase + frame * this.frequency) * this.amplitude + swellAmount;
                     context.lineTo(i, waveY);
@@ -114,7 +114,7 @@ const AnimatedBackground = () => {
             ctx.fillRect(0,0,width,height);
             
             // Easing / Interpolation for smoother mouse follow
-            const easingFactor = 0.08;
+            const easingFactor = 0.04; // Decreased for smoother follow
             if (animatedMousePosition.current.x === Infinity) {
                 animatedMousePosition.current = realMousePosition.current;
             } else {
