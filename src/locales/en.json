@@ -1,3 +1,4 @@
+
 {
   "dashboard": "Dashboard",
   "knowledgeGraph": "Knowledge Graph",
@@ -8,7 +9,7 @@
   "budgetTracker": "Budget Tracker",
   "aiTools": "AI Tools",
   "techNews": "Tech News",
-  "eln": "All in One",
+  "eln": "ELN",
   "settings": "Settings",
   "lightTheme": "Light",
   "darkTheme": "Dark",
