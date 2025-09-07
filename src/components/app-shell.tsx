@@ -60,6 +60,7 @@ import { useStorage } from '@/hooks/use-storage';
 import { initializeTimerManager } from '@/lib/timer-manager';
 import EnglishLearning from './english-learning';
 import { ScrollArea } from './ui/scroll-area';
+import { CommandMenu } from './command-menu';
 
 
 const DrawBoard = dynamic(() => import('@/components/draw-board'), {
@@ -84,7 +85,7 @@ type Module =
   | 'data-lookup'
   | 'english-learning';
 
-interface NavItem {
+export interface NavItem {
   id: Module;
   icon: FC<React.ComponentProps<'svg'>>;
   labelKey: "dashboard" | "knowledgeGraph" | "taskBoard" | "notesEditor" | "calendar" | "pomodoroTimer" | "budgetTracker" | "aiTools" | "techNews" | "integrationsHub" | "drawBoard" | "quickGenerators" | "dataLookupTools" | "englishLearning";
@@ -167,6 +168,7 @@ export default function AppShell({ onExit }: AppShellProps) {
   return (
     <div className="flex h-screen w-full bg-transparent">
       <AnimatedBackground />
+      <CommandMenu navItems={navItems} setActiveModule={setActiveModule} />
       <nav
         className={cn(
           'flex flex-col border-r border-border bg-card/60 backdrop-blur-sm p-4 transition-[width] duration-300 ease-in-out z-10',
