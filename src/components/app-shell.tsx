@@ -27,6 +27,7 @@ import {
   Database,
   Computer,
   BookOpenCheck,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Dashboard from '@/components/dashboard';
@@ -88,6 +89,11 @@ interface NavItem {
   labelKey: "dashboard" | "knowledgeGraph" | "taskBoard" | "notesEditor" | "calendar" | "pomodoroTimer" | "budgetTracker" | "aiTools" | "techNews" | "integrationsHub" | "drawBoard" | "quickGenerators" | "dataLookupTools" | "englishLearning";
 }
 
+interface AppShellProps {
+  onExit: () => void;
+}
+
+
 const navItems: NavItem[] = [
   { id: 'dashboard', icon: LayoutDashboard, labelKey: 'dashboard' },
   { id: 'knowledge-graph', icon: BrainCircuit, labelKey: 'knowledgeGraph' },
@@ -105,7 +111,7 @@ const navItems: NavItem[] = [
   { id: 'tech-news', icon: Newspaper, labelKey: 'techNews' },
 ];
 
-export default function AppShell() {
+export default function AppShell({ onExit }: AppShellProps) {
   const [activeModule, setActiveModule] = useState<Module>('dashboard');
   const { setTheme } = useTheme();
   const { t, setLanguage } = useLanguage();
@@ -245,6 +251,18 @@ export default function AppShell() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <Button 
+            variant="ghost" 
+            onClick={onExit}
+            className={cn(
+                'flex h-10 items-center gap-3 rounded-lg px-3 text-muted-foreground transition-colors',
+                'hover:bg-destructive/80 hover:text-destructive-foreground',
+                 'w-full justify-start'
+              )}
+           >
+            <LogOut className="h-5 w-5 shrink-0" />
+            <span className="truncate">{t('exit')}</span>
+          </Button>
         </div>
       </nav>
       <main className="flex-1 overflow-auto p-4 sm:p-6 bg-background/60 backdrop-blur-sm z-0">
