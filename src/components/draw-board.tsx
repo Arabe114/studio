@@ -12,6 +12,9 @@ import { Label } from './ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { useLanguage } from '@/hooks/use-language';
 import { Skeleton } from './ui/skeleton';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+
 
 type Line = {
   tool: 'pen' | 'eraser';
@@ -40,6 +43,7 @@ export default function DrawBoard() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const { t } = useLanguage();
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
   
   const [konva, setKonva] = useState<KonvaComponents>(null);
 
@@ -52,6 +56,24 @@ export default function DrawBoard() {
           Line: KonvaModule.Line,
       });
     });
+  }, []);
+  
+  useEffect(() => {
+    const drawingRef = doc(db, 'drawings', 'main-drawing');
+    const unsubscribe = onSnapshot(drawingRef, (doc) => {
+        if(doc.exists()) {
+            const data = doc.data();
+            // To prevent overwriting local state if user is drawing while a remote change comes in.
+            // A more robust solution might use timestamps or versioning.
+            if(!isDrawing.current) {
+                setLines(data.lines || []);
+            }
+        } else {
+             setDoc(drawingRef, { lines: [] });
+        }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -74,6 +96,14 @@ export default function DrawBoard() {
       return () => resizeObserver.disconnect();
     }
   }, [konva]); // Rerun when konva is loaded
+  
+  const saveData = (newLines: Line[]) => {
+      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+      debounceTimeout.current = setTimeout(() => {
+          const drawingRef = doc(db, 'drawings', 'main-drawing');
+          setDoc(drawingRef, { lines: newLines }, { merge: true });
+      }, 1000); // Save 1 second after user stops drawing
+  };
 
   const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
     isDrawing.current = true;
@@ -99,7 +129,8 @@ export default function DrawBoard() {
 
     // Replace last line
     lines.splice(lines.length - 1, 1, lastLine);
-    setLines(lines.concat());
+    const newLines = lines.concat();
+    setLines(newLines);
   };
 
   const handleMouseUp = () => {
@@ -108,24 +139,30 @@ export default function DrawBoard() {
     newHistory.push(lines);
     setHistory(newHistory);
     setHistoryStep(newHistory.length - 1);
+    saveData(lines);
   };
   
   const handleUndo = () => {
     if (historyStep === 0) return;
     const newStep = historyStep - 1;
     setHistoryStep(newStep);
-    setLines(history[newStep]);
+    const newLines = history[newStep];
+    setLines(newLines);
+    saveData(newLines);
   };
   
   const handleRedo = () => {
     if (historyStep === history.length - 1) return;
     const newStep = historyStep + 1;
     setHistoryStep(newStep);
-    setLines(history[newStep]);
+    const newLines = history[newStep];
+    setLines(newLines);
+    saveData(newLines);
   };
   
   const handleClear = () => {
     setLines([]);
+    saveData([]);
     const newHistory = history.slice(0, historyStep + 1);
     newHistory.push([]);
     setHistory(newHistory);
