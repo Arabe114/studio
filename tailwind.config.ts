@@ -88,10 +88,17 @@ export default {
             height: '0',
           },
         },
+        'shake': {
+          '10%, 90%': { transform: 'translate3d(-1px, 0, 0) rotate(-3deg)' },
+          '20%, 80%': { transform: 'translate3d(2px, 0, 0) rotate(3deg)' },
+          '30%, 50%, 70%': { transform: 'translate3d(-3px, 0, 0) rotate(-3deg)' },
+          '40%, 60%': { transform: 'translate3d(3px, 0, 0) rotate(3deg)' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'shake': 'shake 0.6s cubic-bezier(.36,.07,.19,.97) both',
       },
       boxShadow: {
         'neon-primary': '0 0 8px hsl(var(--primary) / 0.5)',
