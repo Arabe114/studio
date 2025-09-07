@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -119,9 +120,10 @@ export default function AppShell() {
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-neon-primary hover:shadow-lg hover:scale-105 transition-all duration-200">
             {t('eln')}
           </div>
-           {isSidebarExpanded && (
-             <span className="ml-3 text-lg font-semibold text-primary animate-in fade-in slide-in-from-left-4 duration-500 [text-shadow:0_0_8px_hsl(var(--primary)/_0.8)]">{t('eln')}</span>
-           )}
+           <span className={cn(
+               "ml-3 text-lg font-semibold text-primary [text-shadow:0_0_8px_hsl(var(--primary)/_0.8)] transition-opacity duration-300",
+               isSidebarExpanded ? "opacity-100 animate-in fade-in slide-in-from-left-4" : "opacity-0"
+           )}>{t('eln')}</span>
         </div>
 
         <div className="flex flex-grow flex-col gap-2">
