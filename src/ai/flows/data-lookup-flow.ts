@@ -25,7 +25,7 @@ const DataLookupInputSchema = z.object({
 export type DataLookupInput = z.infer<typeof DataLookupInputSchema>;
 
 const DataLookupOutputSchema = z.object({
-  result: z.record(z.string(), z.any()).describe("A structured object containing the lookup results. The keys should be descriptive labels (e.g., 'Is Valid', 'Country', 'Registrar'). The values can be strings, numbers, or booleans."),
+  result: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).describe("A structured object containing the lookup results. The keys should be descriptive labels (e.g., 'Is Valid', 'Country', 'Registrar'). The values can be strings, numbers, or booleans."),
 });
 export type DataLookupOutput = z.infer<typeof DataLookupOutputSchema>;
 
@@ -38,11 +38,11 @@ const dataLookupPrompt = ai.definePrompt({
 Tool: {{{tool}}}
 Query: {{{query}}}
 
-For an 'email-validator', return fields like "Is Valid", "Is Disposable", "Reason".
-For a 'phone-inspector', return fields like "Country", "Carrier", "Number Type".
-For an 'ip-geolocation', return fields like "City", "Country", "ISP", "Coordinates".
-For a 'domain-whois', return fields like "Registrar", "Creation Date", "Expiration Date".
-For a 'company-finder', return fields like "Company Name", "Industry", "Website", "Description".
+For an 'email-validator', return fields like "Is Valid" (boolean), "Is Disposable" (boolean), "Reason" (string).
+For a 'phone-inspector', return fields like "Country" (string), "Carrier" (string), "Number Type" (string).
+For an 'ip-geolocation', return fields like "City" (string), "Country" (string), "ISP" (string), "Coordinates" (string).
+For a 'domain-whois', return fields like "Registrar" (string), "Creation Date" (string), "Expiration Date" (string).
+For a 'company-finder', return fields like "Company Name" (string), "Industry" (string), "Website" (string), "Description" (string).
 For a 'username-search', return an object where keys are social media platforms and values are booleans indicating availability.
 
 Generate the response for the query now.`,
