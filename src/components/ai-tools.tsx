@@ -13,7 +13,7 @@ import { useLanguage } from '@/hooks/use-language';
 
 const toolCategories = [
   {
-    category: 'AI Chatbots & Assistants',
+    category: 'aiChatbotsAssistants',
     tools: [
       { name: 'AskCodi', link: 'https://www.askcodi.com/', description: 'AI code assistant for developers.' },
       { name: 'ChatGPT', link: 'https://chat.openai.com/', description: 'Conversational AI for a wide range of tasks.' },
@@ -30,7 +30,7 @@ const toolCategories = [
     ],
   },
   {
-    category: 'AI Image, Video & Design',
+    category: 'aiImageVideoDesign',
     tools: [
         { name: 'Adobe Firefly', link: 'https://www.adobe.com/products/firefly.html', description: 'Generative AI for creative expression.' },
         { name: 'AutoDraw', link: 'https://www.autodraw.com/', description: 'Fast drawing for everyone with the help of AI.' },
@@ -63,7 +63,7 @@ const toolCategories = [
     ],
   },
   {
-    category: 'AI Writing & Content Creation',
+    category: 'aiWritingContentCreation',
     tools: [
       { name: 'Copy.ai', link: 'https://www.copy.ai/', description: 'AI-powered copywriter for marketing and sales.' },
       { name: 'Grammarly', link: 'https://www.grammarly.com/', description: 'AI-powered writing assistant.' },
@@ -77,7 +77,7 @@ const toolCategories = [
     ],
   },
   {
-    category: 'AI Presentations & Documents',
+    category: 'aiPresentationsDocuments',
     tools: [
       { name: 'Beautiful.AI', link: 'https://www.beautiful.ai/', description: 'AI presentation maker for stunning slides.' },
       { name: 'Pitch', link: 'https://pitch.com/', description: 'Collaborative presentation software with AI features.' },
@@ -89,7 +89,7 @@ const toolCategories = [
     ],
   },
   {
-    category: 'AI Website & Landing Page Builders',
+    category: 'aiWebsiteLandingPageBuilders',
     tools: [
       { name: 'Durable', link: 'https://durable.co', description: 'Generates a complete business website with a CRM in under a minute.' },
       { name: 'Hocoos', link: 'https://hocoos.com', description: 'Uses a guided, question-based process to create a tailored website.' },
@@ -106,7 +106,7 @@ const toolCategories = [
     ],
   },
   {
-    category: 'AI UI, Web & Full-Stack App Builders',
+    category: 'aiUiWebFullStackAppBuilders',
     tools: [
       { name: '10Web AI Builder', link: 'https://10web.io', description: 'Creates or replicates any website on the WordPress platform using AI.' },
       { name: 'Framer AI', link: 'https://www.framer.com/ai', description: 'A professional design tool that generates complete, interactive websites from a text prompt.' },
@@ -119,7 +119,7 @@ const toolCategories = [
     ],
   },
   {
-    category: 'AI Mobile App Builders',
+    category: 'aiMobileAppBuilders',
     tools: [
       { name: 'vibecode', link: 'https://www.vibecode.com', description: 'A dedicated platform for creating native mobile apps, primarily for iOS, directly from a text prompt.' },
       { name: 'Create.xyz', link: 'https://www.create.xyz', description: 'A low-code platform that uses AI to build web apps, mobile apps, and backend services.' },
@@ -127,7 +127,7 @@ const toolCategories = [
     ],
   },
   {
-    category: 'AI Design & Developer Tools',
+    category: 'aiDesignDeveloperTools',
     tools: [
       { name: 'V0', link: 'https://v0.dev', description: 'A tool by Vercel for developers that generates React UI component code from a text prompt.' },
       { name: 'Make-Real.ai', link: 'https://makereal.tldraw.com', description: 'An AI tool that converts drawings, sketches, and wireframes into functional code.' },
@@ -139,7 +139,7 @@ const toolCategories = [
     ],
   },
   {
-    category: 'AI Music & Audio',
+    category: 'aiMusicAudio',
     tools: [
       { name: 'Adobe Podcast', link: 'https://podcast.adobe.com/enhance', description: 'AI-powered audio recording and editing, all on the web.' },
       { name: 'AIVA', link: 'https://www.aiva.ai/', description: 'The AI generating emotional soundtrack music.' },
@@ -150,7 +150,7 @@ const toolCategories = [
     ],
   },
   {
-    category: 'AI Productivity & Automation',
+    category: 'aiProductivityAutomation',
     tools: [
       { name: 'Calendly', link: 'https://calendly.com/', description: 'Automated scheduling software.' },
       { name: 'ClickUp', link: 'https://clickup.com/', description: 'All-in-one productivity platform with AI.' },
@@ -170,7 +170,7 @@ const toolCategories = [
     ],
   },
   {
-    category: 'AI Data, Coding & Research',
+    category: 'aiDataCodingResearch',
     tools: [
       { name: 'Bricks', link: 'https://www.bricks.ai/', description: 'AI-powered data analysis and visualization.' },
       { name: 'Cogram', link: 'https://www.cogram.com/', description: 'AI for data analysis and reporting.' },
@@ -192,7 +192,7 @@ const toolCategories = [
     ],
   },
   {
-    category: 'AI Meetings & Communication',
+    category: 'aiMeetingsCommunication',
     tools: [
       { name: 'Avoma', link: 'https://www.avoma.com/', description: 'AI meeting assistant for revenue teams.' },
       { name: 'Equal Time', link: 'https://equaltime.io/', description: 'AI-powered meeting analytics.' },
@@ -204,7 +204,7 @@ const toolCategories = [
     ],
   },
   {
-    category: 'AI Health & Wellness',
+    category: 'aiHealthWellness',
     tools: [
       { name: 'Glass AI', link: 'https://glass.health/', description: 'AI for medical knowledge.' },
       { name: 'Whoop Coach', link: 'https://www.whoop.com/', description: 'AI-powered health and fitness coach.' },
@@ -228,7 +228,7 @@ export default function AiTools() {
             className="border-none"
           >
             <AccordionTrigger className="text-xl font-semibold bg-card/50 px-6 rounded-lg hover:no-underline hover:bg-card">
-              {categoryItem.category}
+              {t(categoryItem.category as any)}
             </AccordionTrigger>
             <AccordionContent className="pt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

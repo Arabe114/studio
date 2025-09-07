@@ -94,6 +94,7 @@
   "bold": "Bold",
   "italic": "Italic",
   "pomodoroTimers": "Pomodoro Timers",
+  "addTimer": "Add Timer",
   "focus": "Focus",
   "break": "Break",
   "editTimer": "Edit Timer",
@@ -142,5 +143,18 @@
   "undo": "Undo",
   "redo": "Redo",
   "clear": "Clear",
-  "export": "Export as PNG"
+  "export": "Export as PNG",
+  "aiChatbotsAssistants": "AI Chatbots & Assistants",
+  "aiImageVideoDesign": "AI Image, Video & Design",
+  "aiWritingContentCreation": "AI Writing & Content Creation",
+  "aiPresentationsDocuments": "AI Presentations & Documents",
+  "aiWebsiteLandingPageBuilders": "AI Website & Landing Page Builders",
+  "aiUiWebFullStackAppBuilders": "AI UI, Web & Full-Stack App Builders",
+  "aiMobileAppBuilders": "AI Mobile App Builders",
+  "aiDesignDeveloperTools": "AI Design & Developer Tools",
+  "aiMusicAudio": "AI Music & Audio",
+  "aiProductivityAutomation": "AI Productivity & Automation",
+  "aiDataCodingResearch": "AI Data, Coding & Research",
+  "aiMeetingsCommunication": "AI Meetings & Communication",
+  "aiHealthWellness": "AI Health & Wellness"
 }
