@@ -121,6 +121,8 @@
   "githubDescription": "Vincule tarefas a issues do GitHub e acompanhe seus status.",
   "slack": "Slack",
   "slackDescription": "Receba notificações de eventos e atualizações de tarefas em seus canais do Slack.",
+  "n8n": "n8n",
+  "n8nDescription": "Automatize fluxos de trabalho e conecte o ELN a centenas de outros aplicativos.",
   "comingSoon": "Em Breve",
   "drawBoardDescription": "Um espaço para esboçar ideias, mapear fluxos ou apenas rabiscar. Suas criações podem ser salvas como imagens.",
   "pen": "Caneta",

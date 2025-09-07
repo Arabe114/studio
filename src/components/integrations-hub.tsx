@@ -4,11 +4,11 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Dot, GitBranch, MessageSquare } from 'lucide-react';
+import { Check, Dot, GitBranch, MessageSquare, Workflow } from 'lucide-react';
 import { useLanguage } from '@/hooks/use-language';
 import Image from 'next/image';
 
-type IntegrationId = 'google-calendar' | 'github' | 'slack';
+type IntegrationId = 'google-calendar' | 'github' | 'slack' | 'n8n';
 
 const integrations = [
   {
@@ -31,6 +31,13 @@ const integrations = [
     description: 'slackDescription',
     icon: '/slack.svg',
     category: 'Communication',
+  },
+  {
+    id: 'n8n',
+    name: 'n8n',
+    description: 'n8nDescription',
+    icon: <Workflow className="w-12 h-12 p-2 rounded-lg border bg-card text-primary"/>,
+    category: 'Automation',
   }
 ];
 
@@ -40,6 +47,7 @@ export default function IntegrationsHub() {
     'google-calendar': false,
     'github': false,
     'slack': false,
+    'n8n': false
   });
 
   const handleConnect = (id: IntegrationId) => {
@@ -57,7 +65,7 @@ export default function IntegrationsHub() {
         {integrations.map((integration) => (
           <Card key={integration.id} className="flex flex-col">
             <CardHeader className="flex-row items-start gap-4">
-               <Image src={integration.icon} alt={t(integration.name as any)} width={48} height={48} className="rounded-lg border p-2 bg-card"/>
+               {typeof integration.icon === 'string' ? <Image src={integration.icon} alt={t(integration.name as any)} width={48} height={48} className="rounded-lg border p-2 bg-card"/> : integration.icon}
                <div>
                 <CardTitle>{t(integration.name as any)}</CardTitle>
                 <p className="text-sm text-muted-foreground">{integration.category}</p>
