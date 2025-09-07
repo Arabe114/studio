@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -27,6 +26,7 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { CheckCircle, Circle, RefreshCw } from 'lucide-react';
+import { useLanguage } from '@/hooks/use-language';
 
 type TaskStatus = 'todo' | 'in-progress' | 'done';
 type ViewMode = 'flow' | 'board';
@@ -57,12 +57,6 @@ const statusToColor: Record<TaskStatus, string> = {
     'in-progress': 'hsl(var(--primary))',
     'done': 'hsl(var(--ring))',
 }
-const statusToTitle: Record<TaskStatus, string> = {
-    'todo': 'To Do',
-    'in-progress': 'In Progress',
-    'done': 'Done',
-}
-
 
 export default function KanbanBoard() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -74,6 +68,13 @@ export default function KanbanBoard() {
   const [sheetTask, setSheetTask] = useState<Partial<Task> | null>(null);
   const [centerView, setCenterView] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('flow');
+  const { t } = useLanguage();
+
+  const statusToTitle: Record<TaskStatus, string> = {
+    'todo': t('toDo'),
+    'in-progress': t('inProgress'),
+    'done': t('done'),
+  }
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'tasks'), (snapshot) => {
@@ -261,9 +262,9 @@ export default function KanbanBoard() {
   return (
     <div className="h-full min-h-[85vh] flex flex-col">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-3xl font-bold">Task {viewMode === 'flow' ? 'Flow' : 'Board'}</h1>
+        <h1 className="text-3xl font-bold">{viewMode === 'flow' ? t('taskFlow') : t('taskBoardView')}</h1>
         <div className="flex gap-2">
-            <Button onClick={handleCreateNewTask}><Plus /> Add Task</Button>
+            <Button onClick={handleCreateNewTask}><Plus /> {t('addTask')}</Button>
             {viewMode === 'flow' && (
                 <>
                     <Button 
@@ -274,13 +275,13 @@ export default function KanbanBoard() {
                             setSelectedTask(null);
                         }}
                     >
-                        <LinkIcon /> {isLinkingMode ? (firstLinkNode ? 'Select Target' : 'Select Source') : 'Link Tasks'}
+                        <LinkIcon /> {isLinkingMode ? (firstLinkNode ? t('selectTarget') : t('selectSource')) : t('linkTasks')}
                     </Button>
-                    <Button variant="outline" onClick={() => setCenterView(true)}><LocateFixed /> Center View</Button>
+                    <Button variant="outline" onClick={() => setCenterView(true)}><LocateFixed /> {t('centerView')}</Button>
                 </>
             )}
             <Button variant="outline" onClick={() => setViewMode(viewMode === 'flow' ? 'board' : 'flow')}>
-                {viewMode === 'flow' ? <><LayoutGrid/> Board View</> : <><Workflow/> Flow View</>}
+                {viewMode === 'flow' ? <><LayoutGrid/> {t('boardView')}</> : <><Workflow/> {t('flowView')}</>}
             </Button>
         </div>
       </div>
@@ -296,38 +297,38 @@ export default function KanbanBoard() {
       }}>
         <SheetContent>
             <SheetHeader>
-                <SheetTitle>{sheetTask?.id ? 'Edit Task' : 'Create New Task'}</SheetTitle>
+                <SheetTitle>{sheetTask?.id ? t('editTask') : t('createNewTask')}</SheetTitle>
             </SheetHeader>
             {sheetTask && (
                 <form onSubmit={handleSaveTask} className="space-y-4 py-4">
                      <div>
-                        <Label htmlFor="title">Title</Label>
+                        <Label htmlFor="title">{t('title')}</Label>
                         <Input id="title" value={sheetTask.title || ''} onChange={e => setSheetTask({...sheetTask, title: e.target.value})} required />
                     </div>
                      <div>
-                        <Label htmlFor="description">Description</Label>
+                        <Label htmlFor="description">{t('description')}</Label>
                         <Textarea id="description" value={sheetTask.description || ''} onChange={e => setSheetTask({...sheetTask, description: e.target.value})} />
                     </div>
                      <div>
-                        <Label htmlFor="status">Status</Label>
+                        <Label htmlFor="status">{t('status')}</Label>
                          <Select value={sheetTask.status || 'todo'} onValueChange={(value: TaskStatus) => setSheetTask({...sheetTask, status: value})}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Select status" />
+                                <SelectValue placeholder={t('selectStatus')} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="todo">To Do</SelectItem>
-                                <SelectItem value="in-progress">In Progress</SelectItem>
-                                <SelectItem value="done">Done</SelectItem>
+                                <SelectItem value="todo">{t('toDo')}</SelectItem>
+                                <SelectItem value="in-progress">{t('inProgress')}</SelectItem>
+                                <SelectItem value="done">{t('done')}</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                     <div className="flex justify-between">
                       <Button type="submit">
-                        {sheetTask.id ? 'Save Changes' : 'Create Task'}
+                        {sheetTask.id ? t('saveChanges') : t('createNewTask')}
                       </Button>
                       {sheetTask.id && (
                         <Button type="button" variant="destructive" onClick={handleDeleteTask}>
-                           <Trash2 /> Delete Task
+                           <Trash2 /> {t('deleteTask')}
                         </Button>
                       )}
                     </div>
@@ -338,5 +339,3 @@ export default function KanbanBoard() {
     </div>
   );
 }
-
-    

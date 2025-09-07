@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useLanguage } from '@/hooks/use-language';
 
 
 type TransactionType = 'income' | 'expense';
@@ -26,6 +27,7 @@ export default function BudgetTracker() {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<TransactionType>('expense');
+  const { t } = useLanguage();
 
   useEffect(() => {
     const q = collection(db, 'transactions');
@@ -74,15 +76,15 @@ export default function BudgetTracker() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2">
-        <h1 className="text-3xl font-bold mb-6">Budget Tracker</h1>
+        <h1 className="text-3xl font-bold mb-6">{t('budgetTracker')}</h1>
         <Card>
           <CardHeader>
-            <CardTitle>Add New Transaction</CardTitle>
+            <CardTitle>{t('addNewTransaction')}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleAddTransaction} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">{t('description')}</Label>
                 <Input
                   id="description"
                   value={description}
@@ -92,7 +94,7 @@ export default function BudgetTracker() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="amount">Amount</Label>
+                <Label htmlFor="amount">{t('amount')}</Label>
                 <Input
                   id="amount"
                   type="number"
@@ -105,24 +107,24 @@ export default function BudgetTracker() {
               <RadioGroup value={type} onValueChange={(value: TransactionType) => setType(value)} className="flex gap-4">
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="income" id="income" />
-                  <Label htmlFor="income">Income</Label>
+                  <Label htmlFor="income">{t('income')}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="expense" id="expense" />
-                  <Label htmlFor="expense">Expense</Label>
+                  <Label htmlFor="expense">{t('expense')}</Label>
                 </div>
               </RadioGroup>
-              <Button type="submit">Add Transaction</Button>
+              <Button type="submit">{t('addTransaction')}</Button>
             </form>
           </CardContent>
         </Card>
         <Card className="mt-6">
           <CardHeader>
-            <CardTitle>Recent Transactions</CardTitle>
+            <CardTitle>{t('recentTransactions')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-4">
-              {transactions.length === 0 && <p className="text-muted-foreground">No transactions yet.</p>}
+              {transactions.length === 0 && <p className="text-muted-foreground">{t('noTransactionsYet')}</p>}
               {transactions.map(transaction => (
                 <li key={transaction.id} className="flex justify-between items-center">
                   <div>
@@ -140,23 +142,23 @@ export default function BudgetTracker() {
       </div>
 
       <div className="lg:col-span-1 space-y-6">
-         <h1 className="text-3xl font-bold mb-6 invisible">Summary</h1>
+         <h1 className="text-3xl font-bold mb-6 invisible">{t('summary')}</h1>
         <Card>
           <CardHeader>
-            <CardTitle>Summary</CardTitle>
+            <CardTitle>{t('summary')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Total Income</span>
+              <span className="text-muted-foreground">{t('totalIncome')}</span>
               <span className="font-medium text-green-500">${totalIncome.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Total Expenses</span>
+              <span className="text-muted-foreground">{t('totalExpenses')}</span>
               <span className="font-medium text-red-500">${totalExpenses.toFixed(2)}</span>
             </div>
             <Separator />
             <div className="flex justify-between font-bold text-lg">
-              <span>Current Balance</span>
+              <span>{t('currentBalance')}</span>
               <span>${currentBalance.toFixed(2)}</span>
             </div>
           </CardContent>

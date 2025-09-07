@@ -14,7 +14,7 @@ import {
 import { Label } from './ui/label';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc } from 'firebase/firestore';
-
+import { useLanguage } from '@/hooks/use-language';
 
 type TimerMode = 'work' | 'break';
 
@@ -33,6 +33,7 @@ export default function PomodoroTimer() {
     const intervalRefs = useRef<Record<string, NodeJS.Timeout | null>>({});
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [editingTimer, setEditingTimer] = useState<Timer | null>(null);
+    const { t } = useLanguage();
 
     useEffect(() => {
         const q = collection(db, 'timers');
@@ -171,9 +172,9 @@ export default function PomodoroTimer() {
   return (
     <div className="space-y-6">
        <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Pomodoro Timers</h1>
+        <h1 className="text-3xl font-bold">{t('pomodoroTimers')}</h1>
         <Button onClick={addTimer}>
-            <Plus className="mr-2" /> Add Timer
+            <Plus className="mr-2" /> {t('addTimer')}
         </Button>
        </div>
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -183,7 +184,7 @@ export default function PomodoroTimer() {
                 <CardTitle className="flex justify-between items-center">
                     <span>{timer.name}</span>
                     <span className="text-sm font-medium text-muted-foreground bg-secondary px-2 py-1 rounded-md">
-                        {timer.mode === 'work' ? 'Focus' : 'Break'}
+                        {timer.mode === 'work' ? t('focus') : t('break')}
                     </span>
                 </CardTitle>
             </CardHeader>
@@ -213,23 +214,23 @@ export default function PomodoroTimer() {
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Edit Timer</DialogTitle>
+                    <DialogTitle>{t('editTimer')}</DialogTitle>
                 </DialogHeader>
                 {editingTimer && (
                      <form onSubmit={handleEditSave} className="space-y-4">
                         <div>
-                            <Label htmlFor="timer-name">Timer Name</Label>
+                            <Label htmlFor="timer-name">{t('timerName')}</Label>
                             <Input id="timer-name" value={editingTimer.name} onChange={(e) => setEditingTimer({...editingTimer, name: e.target.value})} />
                         </div>
                         <div>
-                            <Label htmlFor="work-duration">Work Duration (minutes)</Label>
+                            <Label htmlFor="work-duration">{t('workDuration')}</Label>
                             <Input id="work-duration" type="number" value={editingTimer.workDuration / 60} onChange={(e) => setEditingTimer({...editingTimer, workDuration: parseInt(e.target.value) * 60 })} />
                         </div>
                         <div>
-                            <Label htmlFor="break-duration">Break Duration (minutes)</Label>
+                            <Label htmlFor="break-duration">{t('breakDuration')}</Label>
                             <Input id="break-duration" type="number" value={editingTimer.breakDuration / 60} onChange={(e) => setEditingTimer({...editingTimer, breakDuration: parseInt(e.target.value) * 60})} />
                         </div>
-                        <Button type="submit"><Check className="mr-2"/>Save Changes</Button>
+                        <Button type="submit"><Check className="mr-2"/>{t('saveChanges')}</Button>
                     </form>
                 )}
             </DialogContent>

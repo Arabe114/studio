@@ -17,7 +17,8 @@ import { Label } from './ui/label';
 import { format, isSameDay } from 'date-fns';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, Timestamp } from 'firebase/firestore';
-
+import { useLanguage } from '@/hooks/use-language';
+import { ptBR } from 'date-fns/locale';
 
 type Event = {
   id: string;
@@ -30,7 +31,7 @@ export default function CalendarScheduler() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [events, setEvents] = useState<Event[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
+  const { t, language } = useLanguage();
 
   useEffect(() => {
     const q = collection(db, 'events');
@@ -68,10 +69,12 @@ export default function CalendarScheduler() {
   };
 
   const dayEvents = date ? events.filter(event => isSameDay(event.date, date)) : [];
+  const locale = language === 'pt' ? ptBR : undefined;
+  const formattedDate = date ? format(date, 'PPP', { locale }) : '...';
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">Calendar & Scheduler</h1>
+      <h1 className="text-3xl font-bold mb-6">{t('calendarScheduler')}</h1>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="md:col-span-2">
           <CardContent className="p-0">
@@ -82,13 +85,14 @@ export default function CalendarScheduler() {
               className="w-full"
               modifiers={{ hasEvent: events.map(e => e.date) }}
               modifiersClassNames={{ hasEvent: 'bg-primary/20 rounded-full' }}
+              locale={locale}
             />
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle>
-              Events for {date ? format(date, 'PPP') : '...'}
+              {t('eventsFor', { date: formattedDate })}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -105,40 +109,40 @@ export default function CalendarScheduler() {
                         : 'bg-gray-500'
                     }
                   >
-                    {event.type}
+                    {t(event.type)}
                   </Badge>
                 </div>
               ))
             ) : (
-              <p className="text-muted-foreground">No events for this day.</p>
+              <p className="text-muted-foreground">{t('noEventsForThisDay')}</p>
             )}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
               <DialogTrigger asChild>
-                <Button className="w-full mt-4" disabled={!date}>Add Event</Button>
+                <Button className="w-full mt-4" disabled={!date}>{t('addEvent')}</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Add Event for {date ? format(date, 'PPP') : ''}</DialogTitle>
+                  <DialogTitle>{t('addEventFor', {date: formattedDate})}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleAddEvent} className="space-y-4">
                   <div>
-                    <Label htmlFor="title">Event Title</Label>
+                    <Label htmlFor="title">{t('eventTitle')}</Label>
                     <Input id="title" name="title" required />
                   </div>
                   <div>
-                    <Label htmlFor="type">Event Type</Label>
+                    <Label htmlFor="type">{t('eventType')}</Label>
                     <select
                       id="type"
                       name="type"
                       defaultValue="personal"
                       className="w-full p-2 mt-1 rounded-md border bg-background"
                     >
-                      <option value="personal">Personal</option>
-                      <option value="work">Work</option>
-                      <option value="other">Other</option>
+                      <option value="personal">{t('personal')}</option>
+                      <option value="work">{t('work')}</option>
+                      <option value="other">{t('other')}</option>
                     </select>
                   </div>
-                  <Button type="submit">Save Event</Button>
+                  <Button type="submit">{t('saveEvent')}</Button>
                 </form>
               </DialogContent>
             </Dialog>

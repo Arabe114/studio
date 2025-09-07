@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Accordion,
   AccordionContent,
@@ -6,6 +8,7 @@ import {
 } from '@/components/ui/accordion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Globe } from 'lucide-react';
+import { useLanguage } from '@/hooks/use-language';
 
 const toolCategories = [
   {
@@ -157,11 +160,12 @@ const toolCategories = [
 ];
 
 export default function AiTools() {
+  const { t } = useLanguage();
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">AI Tools Discovery</h1>
+      <h1 className="text-3xl font-bold mb-6">{t('aiToolsDiscovery')}</h1>
       <p className="text-muted-foreground mb-8">
-        A curated list of AI tools from around the web to enhance your productivity and creativity.
+        {t('aiToolsDescription')}
       </p>
       <Accordion type="multiple" className="w-full space-y-4">
         {toolCategories.map((categoryItem) => (
@@ -191,7 +195,7 @@ export default function AiTools() {
                         rel="noopener noreferrer"
                         className="text-sm font-semibold text-primary hover:underline mt-auto"
                       >
-                        Visit Tool &rarr;
+                        {t('visitTool')}
                       </a>
                     </CardContent>
                   </Card>

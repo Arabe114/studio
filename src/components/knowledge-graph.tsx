@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -24,6 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { useLanguage } from '@/hooks/use-language';
 
 
 type Node = GraphNode & {
@@ -37,7 +37,7 @@ const initialGraphData: GraphData = {
     links: []
 };
 
-function FileExplorer({ nodes, selectedNodeId, onSelectNode, onRename, onDelete, onSelectFolder, selectedFolderId }) {
+function FileExplorer({ nodes, selectedNodeId, onSelectNode, onRename, onDelete, onSelectFolder, selectedFolderId, t }) {
     const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
     const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
     const [editingNodeName, setEditingNodeName] = useState('');
@@ -141,10 +141,10 @@ function FileExplorer({ nodes, selectedNodeId, onSelectNode, onRename, onDelete,
 
                        {editingNodeId !== node.id && (
                            <div className="flex items-center ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => handleRenameStart(e, node)} title={`Rename ${node.type}`}>
+                               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => handleRenameStart(e, node)} title={t('rename') + ' ' + node.type}>
                                    <Edit className="h-3 w-3" />
                                </Button>
-                               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => handleDeleteClick(e, node)} title={`Delete ${node.type}`}>
+                               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => handleDeleteClick(e, node)} title={t('delete') + ' ' + node.type}>
                                    <Trash2 className="h-3 w-3" />
                                </Button>
                            </div>
@@ -166,23 +166,25 @@ function FileExplorer({ nodes, selectedNodeId, onSelectNode, onRename, onDelete,
                     onClick={() => onSelectFolder(null)}
                 >
                     <Folder className={cn("h-4 w-4 text-primary transition-colors group-hover:text-accent-foreground", selectedFolderId === null && "text-accent-foreground")} />
-                    <span>All Files</span>
+                    <span>{t('allFiles')}</span>
                 </div>
                 {renderTree(rootNodes)}
             </div>
             <AlertDialog open={!!nodeToDelete} onOpenChange={(open) => !open && setNodeToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogTitle>{t('areYouSure')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete the {nodeToDelete?.type}
-                        <span className="font-bold"> "{nodeToDelete?.id}"</span>
-                        {nodeToDelete?.type === 'folder' && ' and all of its contents.'}
+                        {t('deleteWarning', {
+                            type: nodeToDelete?.type,
+                            name: nodeToDelete?.id,
+                            maybeContents: nodeToDelete?.type === 'folder' ? t('andAllContents') : ''
+                        })}
                     </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => setNodeToDelete(null)}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                    <AlertDialogCancel onClick={() => setNodeToDelete(null)}>{t('cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('delete')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -206,6 +208,7 @@ export default function KnowledgeGraph() {
   const [editingNodeName, setEditingNodeName] = useState('');
   
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const unsubNodes = onSnapshot(collection(db, 'kg-nodes'), (snapshot) => {
@@ -274,7 +277,7 @@ export default function KnowledgeGraph() {
 
   const handleAddNode = useCallback(async (isFolder = false) => {
     const type = isFolder ? "folder" : "file";
-    const baseName = isFolder ? "New Folder" : "New File";
+    const baseName = isFolder ? t('newFolder') : t('newFile');
     let newNodeId = `${baseName}`;
     let counter = 1;
     while(allNodes.some(n => n.id === newNodeId)) {
@@ -317,7 +320,7 @@ export default function KnowledgeGraph() {
 
     await batch.commit();
 
-  }, [selectedNode, allNodes, allLinks, selectedFolderId]);
+  }, [selectedNode, allNodes, allLinks, selectedFolderId, t]);
   
   const handleAddImageNode = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -536,7 +539,7 @@ export default function KnowledgeGraph() {
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-full min-h-[85vh]">
       <Card className="lg:col-span-1 bg-card/50">
         <CardHeader>
-          <h2 className="text-lg font-semibold">File Explorer</h2>
+          <h2 className="text-lg font-semibold">{t('fileExplorer')}</h2>
         </CardHeader>
         <CardContent>
            <FileExplorer 
@@ -547,6 +550,7 @@ export default function KnowledgeGraph() {
                 selectedFolderId={selectedFolderId}
                 onRename={handleUpdateNodeName}
                 onDelete={deleteNodeAndChildren}
+                t={t}
             />
         </CardContent>
       </Card>
@@ -563,45 +567,45 @@ export default function KnowledgeGraph() {
         />
         {linkingNodes.length > 0 && (
           <div className="absolute top-2 left-2 bg-card/80 p-2 rounded-lg text-sm shadow-lg animate-in fade-in-50">
-            <p className="font-semibold">Linking Nodes ({linkingNodes.length}):</p>
+            <p className="font-semibold">{t('linkingNodes', { count: linkingNodes.length })}</p>
             <ul className="list-disc list-inside max-h-32 overflow-y-auto">
                 {linkingNodes.map(node => <li key={node.id} className="truncate">{node.id}</li>)}
             </ul>
-            {linkingNodes.length === 1 && <p className="text-muted-foreground text-xs mt-1">Select another node to create a link.</p>}
-            {linkingNodes.length === 2 && <Button size="sm" className="mt-2 w-full" onClick={handleCreateLink}>Create Link</Button>}
-            {linkingNodes.length > 2 && <Button size="sm" className="mt-2 w-full" onClick={handleLinkAll}>Link All Selected</Button>}
+            {linkingNodes.length === 1 && <p className="text-muted-foreground text-xs mt-1">{t('selectAnotherNode')}</p>}
+            {linkingNodes.length === 2 && <Button size="sm" className="mt-2 w-full" onClick={handleCreateLink}>{t('createLink')}</Button>}
+            {linkingNodes.length > 2 && <Button size="sm" className="mt-2 w-full" onClick={handleLinkAll}>{t('linkAllSelected')}</Button>}
           </div>
         )}
       </div>
 
       <Card className="lg:col-span-1 bg-card/50">
         <CardHeader>
-          <h2 className="text-lg font-semibold">Controls</h2>
+          <h2 className="text-lg font-semibold">{t('controls')}</h2>
         </CardHeader>
         <CardContent className="space-y-6">
-          <Input placeholder="Search nodes..." />
+          <Input placeholder={t('searchNodes') + "..."} />
 
           {selectedNode && (
             <div className="space-y-2 animate-in fade-in-50">
-              <h3 className="font-medium">Edit Selected: <span className="font-normal text-muted-foreground">{selectedNode.id}</span></h3>
+              <h3 className="font-medium">{t('editSelected')} <span className="font-normal text-muted-foreground">{selectedNode.id}</span></h3>
               <div className="flex gap-2">
                 <Input
                   value={editingNodeName}
                   onChange={(e) => setEditingNodeName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleUpdateNodeName(selectedNode.id, editingNodeName)}
-                  placeholder="New name..."
+                  placeholder={t('newName')}
                 />
-                <Button variant="outline" size="icon" onClick={() => handleUpdateNodeName(selectedNode.id, editingNodeName)} title="Rename Node"><Check /></Button>
+                <Button variant="outline" size="icon" onClick={() => handleUpdateNodeName(selectedNode.id, editingNodeName)} title={t('rename')}><Check /></Button>
               </div>
             </div>
           )}
 
           <div className="space-y-2">
-            <h3 className="font-medium">Actions</h3>
+            <h3 className="font-medium">{t('actions')}</h3>
             <div className="grid grid-cols-2 gap-2">
-               <Button variant="outline" size="sm" onClick={() => handleAddNode(false)}><FilePlus /> New File</Button>
-               <Button variant="outline" size="sm" onClick={() => handleAddNode(true)}><FolderPlus /> New Folder</Button>
-               <Button variant="outline" size="sm" onClick={() => imageInputRef.current?.click()}><ImageIcon /> Add Image</Button>
+               <Button variant="outline" size="sm" onClick={() => handleAddNode(false)}><FilePlus /> {t('newFile')}</Button>
+               <Button variant="outline" size="sm" onClick={() => handleAddNode(true)}><FolderPlus /> {t('newFolder')}</Button>
+               <Button variant="outline" size="sm" onClick={() => imageInputRef.current?.click()}><ImageIcon /> {t('addImage')}</Button>
                <input
                     type="file"
                     ref={imageInputRef}
@@ -609,20 +613,20 @@ export default function KnowledgeGraph() {
                     accept="image/*"
                     className="hidden"
                 />
-               <Button variant="outline" size="sm" onClick={handleCreateLink} disabled={linkingNodes.length !== 2}><LinkIcon /> Link Nodes</Button>
-               <Button variant="outline" size="sm" onClick={handleUnlinkSelected} disabled={!selectedNode || selectedNode.type === 'folder'}><Link2Off /> Unlink Node</Button>
-               <Button variant="destructive" size="sm" onClick={handleDeleteSelected} disabled={!selectedNode}><Trash2 /> Delete</Button>
+               <Button variant="outline" size="sm" onClick={handleCreateLink} disabled={linkingNodes.length !== 2}><LinkIcon /> {t('linkTasks')}</Button>
+               <Button variant="outline" size="sm" onClick={handleUnlinkSelected} disabled={!selectedNode || selectedNode.type === 'folder'}><Link2Off /> {t('unlinkNode')}</Button>
+               <Button variant="destructive" size="sm" onClick={handleDeleteSelected} disabled={!selectedNode}><Trash2 /> {t('delete')}</Button>
             </div>
           </div>
 
           <div className="space-y-4">
-            <h3 className="font-medium">Forces</h3>
+            <h3 className="font-medium">{t('forces')}</h3>
             <div className="flex items-center justify-between">
-              <Label htmlFor="center-force">Center</Label>
+              <Label htmlFor="center-force">{t('center')}</Label>
               <Switch id="center-force" checked={centerForce} onCheckedChange={setCenterForce} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="repel-force">Repel ({repelStrength})</Label>
+              <Label htmlFor="repel-force">{t('repelStrength', { value: repelStrength })}</Label>
               <Slider 
                 id="repel-force" 
                 min={-1000} 
@@ -633,7 +637,7 @@ export default function KnowledgeGraph() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="link-force">Link Distance ({linkDistance})</Label>              <Slider 
+              <Label htmlFor="link-force">{t('linkDistance', { value: linkDistance })}</Label>              <Slider 
                 id="link-force" 
                 min={10} 
                 max={200} 

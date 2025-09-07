@@ -34,10 +34,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from './ui/button';
 import AnimatedBackground from './animated-background';
+import { useLanguage } from '@/hooks/use-language';
 
 type Module =
   | 'dashboard'
@@ -53,25 +55,26 @@ type Module =
 interface NavItem {
   id: Module;
   icon: FC<React.ComponentProps<'svg'>>;
-  label: string;
+  labelKey: "dashboard" | "knowledgeGraph" | "taskBoard" | "notesEditor" | "calendar" | "pomodoroTimer" | "budgetTracker" | "aiTools" | "techNews";
 }
 
 const navItems: NavItem[] = [
-  { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { id: 'knowledge-graph', icon: BrainCircuit, label: 'Knowledge Graph' },
-  { id: 'kanban-board', icon: Kanban, label: 'Task Board' },
-  { id: 'notes-editor', icon: FileText, label: 'Notes Editor' },
-  { id: 'calendar', icon: Calendar, label: 'Calendar' },
-  { id: 'pomodoro', icon: Timer, label: 'Pomodoro Timer' },
-  { id: 'budget', icon: PiggyBank, label: 'Budget Tracker' },
-  { id: 'ai-tools', icon: Cpu, label: 'AI Tools' },
-  { id: 'tech-news', icon: Newspaper, label: 'Tech News' },
+  { id: 'dashboard', icon: LayoutDashboard, labelKey: 'dashboard' },
+  { id: 'knowledge-graph', icon: BrainCircuit, labelKey: 'knowledgeGraph' },
+  { id: 'kanban-board', icon: Kanban, labelKey: 'taskBoard' },
+  { id: 'notes-editor', icon: FileText, labelKey: 'notesEditor' },
+  { id: 'calendar', icon: Calendar, labelKey: 'calendar' },
+  { id: 'pomodoro', icon: Timer, labelKey: 'pomodoroTimer' },
+  { id: 'budget', icon: PiggyBank, labelKey: 'budgetTracker' },
+  { id: 'ai-tools', icon: Cpu, labelKey: 'aiTools' },
+  { id: 'tech-news', icon: Newspaper, labelKey: 'techNews' },
 ];
 
 export default function AppShell() {
   const [activeModule, setActiveModule] = useState<Module>('dashboard');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const { setTheme } = useTheme();
+  const { t, setLanguage } = useLanguage();
 
   const renderModule = () => {
     switch (activeModule) {
@@ -114,10 +117,10 @@ export default function AppShell() {
           )}
         >
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-neon-primary">
-            ELN
+            {t('eln')}
           </div>
            {isSidebarExpanded && (
-             <span className="ml-3 text-lg font-semibold">ELN</span>
+             <span className="ml-3 text-lg font-semibold">{t('eln')}</span>
            )}
         </div>
 
@@ -134,10 +137,10 @@ export default function AppShell() {
                   : 'text-muted-foreground',
                 isSidebarExpanded ? 'w-full justify-start' : 'w-10 justify-center'
               )}
-              title={item.label}
+              title={t(item.labelKey)}
             >
               <item.icon className="h-5 w-5 shrink-0 group-hover:animate-shake" />
-              {isSidebarExpanded && <span className="truncate">{item.label}</span>}
+              {isSidebarExpanded && <span className="truncate">{t(item.labelKey)}</span>}
             </button>
           ))}
         </div>
@@ -151,21 +154,28 @@ export default function AppShell() {
                  isSidebarExpanded ? 'w-full justify-start' : 'w-10 justify-center'
               )}>
                 <Settings className="h-5 w-5 shrink-0" />
-                {isSidebarExpanded && <span className="truncate">Settings</span>}
+                {isSidebarExpanded && <span className="truncate">{t('settings')}</span>}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="right" align="end">
+              <DropdownMenuItem onClick={() => setLanguage('en')}>
+                <span>{t('english')}</span>
+              </DropdownMenuItem>
+               <DropdownMenuItem onClick={() => setLanguage('pt')}>
+                <span>{t('portuguese')}</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setTheme("light")}>
                 <Sun className="mr-2 h-4 w-4" />
-                <span>Light</span>
+                <span>{t('lightTheme')}</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setTheme("dark")}>
                 <Moon className="mr-2 h-4 w-4" />
-                <span>Dark</span>
+                <span>{t('darkTheme')}</span>
               </DropdownMenuItem>
                <DropdownMenuItem onClick={() => setTheme("system")}>
                 <Settings className="mr-2 h-4 w-4" />
-                <span>System</span>
+                <span>{t('systemTheme')}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -177,10 +187,10 @@ export default function AppShell() {
                 'hover:bg-accent hover:text-accent-foreground',
                 isSidebarExpanded ? 'w-full justify-start' : 'w-10 justify-center'
               )}
-              title={isSidebarExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
+              title={isSidebarExpanded ? t('collapseSidebar') : t('expandSidebar')}
             >
               {isSidebarExpanded ? <ChevronsLeft className="h-5 w-5 shrink-0" /> : <ChevronsRight className="h-5 w-5 shrink-0" /> }
-              {isSidebarExpanded && <span className="truncate">Collapse</span>}
+              {isSidebarExpanded && <span className="truncate">{t('collapseSidebar')}</span>}
             </button>
         </div>
       </nav>

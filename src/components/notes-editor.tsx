@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Bold, Italic, Upload } from "lucide-react";
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { useLanguage } from '@/hooks/use-language';
 
 export default function NotesEditor() {
   const [noteContent, setNoteContent] = useState("");
@@ -14,6 +15,7 @@ export default function NotesEditor() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const noteRef = doc(db, 'notes', 'main-note');
@@ -100,10 +102,10 @@ export default function NotesEditor() {
   return (
     <div className="flex flex-col h-full max-h-[calc(100vh-4rem)]">
       <div className="flex justify-between items-center mb-4 shrink-0">
-        <h1 className="text-3xl font-bold">Notes Editor</h1>
+        <h1 className="text-3xl font-bold">{t('notesEditor')}</h1>
         <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
             <Upload className="mr-2 h-4 w-4" />
-            Import .txt File
+            {t('importTxtFile')}
             <input
                 type="file"
                 ref={fileInputRef}
@@ -118,14 +120,14 @@ export default function NotesEditor() {
         value={noteTitle}
         onChange={handleTitleChange}
         className="text-2xl font-semibold border-0 shadow-none focus-visible:ring-0 mb-4 p-0 shrink-0"
-        placeholder="Note Title"
+        placeholder={t('noteTitlePlaceholder')}
       />
 
       <div className="flex items-center gap-2 mb-2 p-2 rounded-lg bg-card border shrink-0">
-        <Button variant="outline" size="icon" onClick={() => applyFormat('bold')} title="Bold">
+        <Button variant="outline" size="icon" onClick={() => applyFormat('bold')} title={t('bold')}>
             <Bold className="h-4 w-4"/>
         </Button>
-        <Button variant="outline" size="icon" onClick={() => applyFormat('italic')} title="Italic">
+        <Button variant="outline" size="icon" onClick={() => applyFormat('italic')} title={t('italic')}>
             <Italic className="h-4 w-4"/>
         </Button>
       </div>
@@ -135,7 +137,7 @@ export default function NotesEditor() {
           ref={textareaRef}
           value={noteContent}
           onChange={handleContentChange}
-          placeholder="Start writing your notes here..."
+          placeholder={t('startWritingPlaceholder')}
           className="w-full h-full flex-grow resize-none text-base"
         />
       </div>
