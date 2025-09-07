@@ -108,7 +108,6 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
                 )}
                 onAnimationEnd={() => setError('')}
             >
-                <div className="absolute inset-0 rounded-lg animate-neon-border-pulse -z-10"></div>
                 {pin.map((digit, index) => (
                 <Input
                     key={index}
@@ -120,9 +119,9 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
                     onKeyDown={(e) => handleKeyDown(index, e)}
                     onPaste={index === 0 ? handlePaste : undefined}
                     className={cn(
-                        "h-16 w-14 text-center text-4xl font-mono transition-shadow duration-300",
-                        "focus-visible:shadow-neon-primary focus-visible:ring-primary",
-                        error && "border-destructive focus-visible:ring-destructive focus-visible:shadow-none",
+                        "h-16 w-14 text-center text-4xl font-mono transition-shadow duration-300 shadow-neon-primary",
+                        "focus-visible:ring-primary",
+                        error && "border-destructive focus-visible:ring-destructive shadow-none",
                         isSuccess && "border-green-500"
                     )}
                     inputMode="numeric"
