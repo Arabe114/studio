@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 import plugin from 'tailwindcss/plugin';
 
@@ -99,6 +100,10 @@ export default {
           '0%': { transform: 'scale(1)' },
           '50%': { transform: 'scale(1.05)' },
           '100%': { transform: 'scale(1)' },
+        },
+        'neon-pulse': {
+            '0%, 100%': { boxShadow: '0 0 5px hsl(var(--primary)/0.4), 0 0 10px hsl(var(--primary)/0.4)' },
+            '50%': { boxShadow: '0 0 10px hsl(var(--primary)/0.6), 0 0 20px hsl(var(--primary)/0.6)' },
         }
       },
       animation: {
@@ -106,6 +111,7 @@ export default {
         'accordion-up': 'accordion-up 0.2s ease-out',
         'shake': 'shake 0.82s cubic-bezier(.36,.07,.19,.97) both',
         'success-pop': 'success-pop 0.3s ease-out',
+        'neon-pulse': 'neon-pulse 4s ease-in-out infinite',
       },
       boxShadow: {
         'neon-primary': '0 0 8px hsl(var(--primary) / 0.5)',

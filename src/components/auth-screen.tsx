@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, KeyboardEvent } from 'react';
@@ -78,7 +79,7 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
     <div className="flex h-screen w-full items-center justify-center bg-transparent">
         <AnimatedBackground />
         <div className={cn(
-            "z-10 w-full max-w-md rounded-xl bg-card/60 backdrop-blur-lg border border-primary/20 p-8 text-center space-y-6 transform transition-all duration-500 shadow-neon-primary",
+            "z-10 w-full max-w-md rounded-xl bg-card/60 backdrop-blur-lg border border-primary/20 p-8 text-center space-y-6 transform transition-all duration-500 animate-neon-pulse",
             isSuccess && "animate-success-pop"
         )}>
             <div className="mx-auto w-fit rounded-full bg-primary/10 p-4 border border-primary/20">
