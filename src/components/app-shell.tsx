@@ -89,7 +89,6 @@ const navItems: NavItem[] = [
 
 export default function AppShell() {
   const [activeModule, setActiveModule] = useState<Module>('dashboard');
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const { setTheme } = useTheme();
   const { t, setLanguage } = useLanguage();
 
@@ -128,17 +127,16 @@ export default function AppShell() {
       <nav
         className={cn(
           'flex flex-col border-r border-border bg-card/60 backdrop-blur-sm p-4 transition-[width] duration-300 ease-in-out z-10',
-          isSidebarExpanded ? 'w-60' : 'w-20',
-          !isSidebarExpanded && 'items-center'
+          'w-60'
         )}
       >
-        <div className={cn("flex h-10 mb-4 items-center", isSidebarExpanded ? 'justify-start' : 'justify-center w-full')}>
-            <div className={cn("flex h-10 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-neon-primary hover:shadow-lg hover:scale-105 transition-all duration-200", isSidebarExpanded ? "w-10" : "w-10")}>
+        <div className={cn("flex h-10 mb-4 items-center", 'justify-start')}>
+            <div className={cn("flex h-10 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-neon-primary hover:shadow-lg hover:scale-105 transition-all duration-200", "w-10")}>
                 ELN
              </div>
              <span className={cn(
                  "text-lg font-semibold text-primary [text-shadow:0_0_8px_hsl(var(--primary)/_0.8)] ml-3 transition-opacity duration-200 ease-out",
-                 isSidebarExpanded ? "opacity-100" : "opacity-0"
+                 "opacity-100"
              )}>{t('eln')}</span>
         </div>
 
@@ -153,12 +151,12 @@ export default function AppShell() {
                 activeModule === item.id
                   ? 'bg-accent text-accent-foreground shadow-neon-accent'
                   : 'text-muted-foreground',
-                isSidebarExpanded ? 'w-full justify-start' : 'w-10 justify-center'
+                'w-full justify-start'
               )}
               title={t(item.labelKey)}
             >
               <item.icon className="h-5 w-5 shrink-0 group-hover:animate-shake" />
-              {isSidebarExpanded && <span className="truncate">{t(item.labelKey)}</span>}
+              <span className="truncate">{t(item.labelKey)}</span>
             </button>
           ))}
         </div>
@@ -169,10 +167,10 @@ export default function AppShell() {
               <Button variant="ghost" className={cn(
                 'flex h-10 items-center gap-3 rounded-lg px-3 text-muted-foreground transition-colors',
                 'hover:bg-accent hover:text-accent-foreground',
-                 isSidebarExpanded ? 'w-full justify-start' : 'w-10 justify-center'
+                 'w-full justify-start'
               )}>
                 <Settings className="h-5 w-5 shrink-0" />
-                {isSidebarExpanded && <span className="truncate">{t('settings')}</span>}
+                <span className="truncate">{t('settings')}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="right" align="end">
@@ -197,19 +195,6 @@ export default function AppShell() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
-           <button
-              onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-              className={cn(
-                'flex h-10 items-center gap-3 rounded-lg px-3 text-muted-foreground transition-colors',
-                'hover:bg-accent hover:text-accent-foreground',
-                isSidebarExpanded ? 'w-full justify-start' : 'w-10 justify-center'
-              )}
-              title={isSidebarExpanded ? t('collapseSidebar') : t('expandSidebar')}
-            >
-              {isSidebarExpanded ? <ChevronsLeft className="h-5 w-5 shrink-0" /> : <ChevronsRight className="h-5 w-5 shrink-0" /> }
-              {isSidebarExpanded && <span className="truncate">{t('collapseSidebar')}</span>}
-            </button>
         </div>
       </nav>
       <main className="flex-1 overflow-auto p-4 sm:p-6 bg-background/60 backdrop-blur-sm z-0">
@@ -220,5 +205,3 @@ export default function AppShell() {
     </div>
   );
 }
-
-    
