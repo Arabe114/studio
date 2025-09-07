@@ -1,14 +1,13 @@
 
 "use client";
-import { useState, useEffect } from 'react';
-import { fetchTechNews, saveTechNews, clearTechNews, type TechNewsOutput } from '@/ai/flows/fetch-tech-news-flow';
+import { useState } from 'react';
+import { fetchTechNews, saveTechNews, clearTechNews, viewSavedNews, type TechNewsOutput } from '@/ai/flows/fetch-tech-news-flow';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Newspaper, Save, Trash2, Eye } from 'lucide-react';
 import { useLanguage } from '@/hooks/use-language';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+
 
 export default function TechNews() {
   const [fetchedNews, setFetchedNews] = useState<TechNewsOutput | null>(null);
@@ -25,7 +24,7 @@ export default function TechNews() {
       const news = await fetchTechNews();
       setFetchedNews(news);
       setNewsToDisplay(news);
-      setSavedNews(null); // Clear saved news from view
+      setSavedNews(null); 
     } catch (err) {
       setError(t('fetchError'));
       console.error(err);
@@ -40,7 +39,6 @@ export default function TechNews() {
         setLoading(true);
         setError(null);
         await saveTechNews(fetchedNews);
-        // After saving, the fetched news becomes the saved news
         setSavedNews(fetchedNews);
         setNewsToDisplay(fetchedNews);
     } catch(err) {
@@ -71,13 +69,11 @@ export default function TechNews() {
     setLoading(true);
     setError(null);
     try {
-        const newsRef = doc(db, 'tech-news', 'latest');
-        const docSnap = await getDoc(newsRef);
-        if (docSnap.exists()) {
-            const data = docSnap.data() as TechNewsOutput;
+        const data = await viewSavedNews();
+        if (data) {
             setSavedNews(data);
             setNewsToDisplay(data);
-            setFetchedNews(null); // Clear any fetched news from view
+            setFetchedNews(null);
         } else {
             setSavedNews(null);
             setNewsToDisplay(null);

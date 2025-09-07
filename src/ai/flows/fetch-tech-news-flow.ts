@@ -5,6 +5,7 @@
  * - fetchTechNews - Fetches news from the AI model.
  * - saveTechNews - Saves a given set of news to Firestore.
  * - clearTechNews - Clears the news from Firestore.
+ * - viewSavedNews - Retrieves the saved news from Firestore.
  * - TechNewsOutput - The data structure for news articles.
  */
 'use server';
@@ -12,7 +13,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
 
 const TechNewsOutputSchema = z.object({
   news: z
@@ -63,7 +64,6 @@ const saveTechNewsFlow = ai.defineFlow(
         inputSchema: TechNewsOutputSchema,
     },
     async (newsToSave) => {
-        // We need to convert the Zod object to a plain JS object for Firestore
         const plainOutput = JSON.parse(JSON.stringify(newsToSave));
         const newsRef = doc(db, 'tech-news', 'latest');
         await setDoc(newsRef, plainOutput);
@@ -87,4 +87,23 @@ const clearTechNewsFlow = ai.defineFlow(
 
 export async function clearTechNews(): Promise<void> {
     await clearTechNewsFlow();
+}
+
+const viewSavedNewsFlow = ai.defineFlow(
+    {
+        name: 'viewSavedNewsFlow',
+        outputSchema: TechNewsOutputSchema.nullable(),
+    },
+    async () => {
+        const newsRef = doc(db, 'tech-news', 'latest');
+        const docSnap = await getDoc(newsRef);
+        if (docSnap.exists()) {
+            return docSnap.data() as TechNewsOutput;
+        }
+        return null;
+    }
+);
+
+export async function viewSavedNews(): Promise<TechNewsOutput | null> {
+    return viewSavedNewsFlow();
 }
