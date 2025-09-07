@@ -1,17 +1,18 @@
 
 "use client";
 import { useState, useEffect } from 'react';
-import { fetchTechNews, clearTechNews, type TechNewsOutput } from '@/ai/flows/fetch-tech-news-flow';
+import { fetchTechNews, saveTechNews, clearTechNews, type TechNewsOutput } from '@/ai/flows/fetch-tech-news-flow';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Newspaper, Trash2 } from 'lucide-react';
+import { Newspaper, Save, Trash2 } from 'lucide-react';
 import { useLanguage } from '@/hooks/use-language';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
 export default function TechNews() {
-  const [news, setNews] = useState<TechNewsOutput | null>(null);
+  const [fetchedNews, setFetchedNews] = useState<TechNewsOutput | null>(null);
+  const [savedNews, setSavedNews] = useState<TechNewsOutput | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { t } = useLanguage();
@@ -21,9 +22,12 @@ export default function TechNews() {
     const newsRef = doc(db, 'tech-news', 'latest');
     const unsubscribe = onSnapshot(newsRef, (doc) => {
       if (doc.exists()) {
-        setNews(doc.data() as TechNewsOutput);
+        const data = doc.data() as TechNewsOutput;
+        setSavedNews(data);
+        setFetchedNews(data); // Also populate the main view with saved news
       } else {
-        setNews(null);
+        setSavedNews(null);
+        setFetchedNews(null);
       }
       setLoading(false);
     }, (err) => {
@@ -35,16 +39,31 @@ export default function TechNews() {
     return () => unsubscribe();
   }, [t]);
 
-  async function loadNews() {
+  async function handleFetchNews() {
     try {
       setLoading(true);
       setError(null);
-      await fetchTechNews();
+      const news = await fetchTechNews();
+      setFetchedNews(news);
     } catch (err) {
       setError(t('fetchError'));
       console.error(err);
     } finally {
-      // setLoading(false) is handled by the onSnapshot listener
+      setLoading(false);
+    }
+  }
+
+  async function handleSaveNews() {
+    if (!fetchedNews) return;
+    try {
+        setLoading(true);
+        setError(null);
+        await saveTechNews(fetchedNews);
+    } catch(err) {
+        setError("Failed to save news.");
+        console.error(err);
+    } finally {
+        setLoading(false);
     }
   }
 
@@ -53,24 +72,31 @@ export default function TechNews() {
         setLoading(true);
         setError(null);
         await clearTechNews();
+        setFetchedNews(null); // Clear from view
     } catch (err) {
         setError("Failed to clear news.");
         console.error(err);
+    } finally {
         setLoading(false);
     }
   }
 
+  const newsToDisplay = fetchedNews;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">{t('dailyTechNews')}</h1>
         <div className="flex gap-2">
-            <Button onClick={loadNews} disabled={loading}>
+            <Button onClick={handleFetchNews} disabled={loading}>
               <Newspaper className="mr-2" />
               {t('fetchLatestNews')}
             </Button>
-            <Button onClick={handleClearNews} disabled={loading || !news} variant="outline">
+            <Button onClick={handleSaveNews} disabled={loading || !fetchedNews}>
+              <Save className="mr-2" />
+              Save News
+            </Button>
+            <Button onClick={handleClearNews} disabled={loading || !savedNews} variant="outline">
                 <Trash2 className="mr-2" />
                 Clear News
             </Button>
@@ -95,7 +121,7 @@ export default function TechNews() {
         </div>
       )}
 
-      {!loading && !news && (
+      {!loading && !newsToDisplay && (
         <div className="flex flex-col items-center justify-center text-center py-16 px-4 rounded-lg bg-card border">
             <Newspaper className="h-12 w-12 text-muted-foreground mb-4" />
             <h2 className="text-xl font-semibold mb-2">{t('headlinesReady')}</h2>
@@ -105,9 +131,9 @@ export default function TechNews() {
         </div>
       )}
 
-      {!loading && news && (
+      {!loading && newsToDisplay && (
         <div className="space-y-4">
-          {news.news.map((article, index) => (
+          {newsToDisplay.news.map((article, index) => (
             <Card key={index}>
               <CardHeader>
                 <CardTitle>{article.headline}</CardTitle>

@@ -2,9 +2,10 @@
 /**
  * @fileOverview A flow for fetching and managing the latest tech news.
  *
- * - fetchTechNews - Fetches news and saves it to Firestore.
+ * - fetchTechNews - Fetches news from the AI model.
+ * - saveTechNews - Saves a given set of news to Firestore.
  * - clearTechNews - Clears the news from Firestore.
- * - TechNewsOutput - The return type for the fetchTechNews function.
+ * - TechNewsOutput - The data structure for news articles.
  */
 'use server';
 
@@ -48,12 +49,6 @@ const fetchTechNewsFlow = ai.defineFlow(
       day: 'numeric',
     });
     const {output} = await techNewsPrompt({currentDate});
-    if (output) {
-        // We need to convert the Zod object to a plain JS object for Firestore
-        const plainOutput = JSON.parse(JSON.stringify(output));
-        const newsRef = doc(db, 'tech-news', 'latest');
-        await setDoc(newsRef, plainOutput);
-    }
     return output!;
   }
 );
@@ -61,6 +56,24 @@ const fetchTechNewsFlow = ai.defineFlow(
 export async function fetchTechNews(): Promise<TechNewsOutput> {
   return fetchTechNewsFlow();
 }
+
+const saveTechNewsFlow = ai.defineFlow(
+    {
+        name: 'saveTechNewsFlow',
+        inputSchema: TechNewsOutputSchema,
+    },
+    async (newsToSave) => {
+        // We need to convert the Zod object to a plain JS object for Firestore
+        const plainOutput = JSON.parse(JSON.stringify(newsToSave));
+        const newsRef = doc(db, 'tech-news', 'latest');
+        await setDoc(newsRef, plainOutput);
+    }
+);
+
+export async function saveTechNews(news: TechNewsOutput): Promise<void> {
+    await saveTechNewsFlow(news);
+}
+
 
 const clearTechNewsFlow = ai.defineFlow(
     {
