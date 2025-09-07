@@ -8,13 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
-import { Loader2, BookText, SpellCheck, Volume2, Bot, Search, Library } from 'lucide-react';
+import { Loader2, BookText, SpellCheck, Volume2, Bot } from 'lucide-react';
 import { englishLearningTool, textToSpeech, EnglishLearningInput, EnglishLearningOutput, TextToSpeechOutput } from '@/ai/flows/english-learning-flow';
 import { Skeleton } from './ui/skeleton';
 import { Badge } from './ui/badge';
-import { ScrollArea } from './ui/scroll-area';
 
-type ResultState = EnglishLearningOutput | TextToSpeechOutput | { dictionary: string[] } | null;
+type ResultState = EnglishLearningOutput | TextToSpeechOutput | null;
 
 export default function EnglishLearning() {
   const { t } = useLanguage();
@@ -34,8 +33,8 @@ export default function EnglishLearning() {
     setError('');
   };
 
-  const handleSubmit = async (tool: 'vocabulary' | 'corrector' | 'pronunciation' | 'dictionary', action?: 'search_word' | 'get_entire_dictionary') => {
-    const query = tool === 'dictionary' && action === 'get_entire_dictionary' ? 'all' : input[tool] || input.vocabulary;
+  const handleSubmit = async (tool: 'vocabulary' | 'corrector' | 'pronunciation') => {
+    const query = input[tool];
     if (!query) return;
 
     setLoading(true);
@@ -48,8 +47,8 @@ export default function EnglishLearning() {
             setResult(response);
         } else {
             const toolKey = tool as EnglishLearningInput['tool'];
-            const response = await englishLearningTool({ tool: toolKey, query, action });
-            setResult(response as any);
+            const response = await englishLearningTool({ tool: toolKey, query });
+            setResult(response);
         }
     } catch (e) {
         console.error(`Error with ${tool} tool:`, e);
@@ -81,20 +80,6 @@ export default function EnglishLearning() {
     );
   };
 
-  const renderDictionaryResult = () => {
-    if (!result || !('dictionary' in result)) return null;
-    return (
-      <div className="space-y-4 animate-in fade-in-50">
-         <h3 className="font-semibold text-lg">Dictionary Words</h3>
-         <ScrollArea className="h-48 w-full rounded-md border p-4">
-            <div className="flex flex-col gap-2">
-                 {result.dictionary.map(word => <div key={word}>{word}</div>)}
-            </div>
-         </ScrollArea>
-      </div>
-    )
-  }
-
   const renderCorrectorResult = () => {
     if (!result || !('correctedSentence' in result)) return null;
     return (
@@ -123,13 +108,12 @@ export default function EnglishLearning() {
   };
 
 
-  const renderResultArea = (tool: 'vocabulary' | 'corrector' | 'pronunciation' | 'dictionary') => (
+  const renderResultArea = (tool: 'vocabulary' | 'corrector' | 'pronunciation') => (
     <CardFooter className="min-h-[150px] bg-muted/30 rounded-b-lg p-6">
         {loading && <Skeleton className="w-full h-[120px]" />}
         {!loading && !error && result && (
             <div className="w-full">
                 {tool === 'vocabulary' && renderVocabularyResult()}
-                {tool === 'dictionary' && renderDictionaryResult()}
                 {tool === 'corrector' && renderCorrectorResult()}
                 {tool === 'pronunciation' && renderPronunciationResult()}
             </div>
@@ -170,17 +154,11 @@ export default function EnglishLearning() {
                 <div className="flex gap-2">
                     <Input placeholder={t('enterAWord')} value={input.vocabulary} onChange={e => handleInputChange('vocabulary', e.target.value)} />
                     <Button onClick={() => handleSubmit('vocabulary')} disabled={loading}>
-                        {loading && <Loader2 className="animate-spin mr-2"/>} {t('define')}
-                    </Button>
-                     <Button onClick={() => handleSubmit('dictionary', 'search_word')} disabled={loading}>
-                        <Search className="mr-2"/> {t('search')}
-                    </Button>
-                     <Button onClick={() => handleSubmit('dictionary', 'get_entire_dictionary')} disabled={loading}>
-                        <Library className="mr-2"/> {t('entireDictionary')}
+                        {loading && <Loader2 className="animate-spin mr-2"/>} {t('search')}
                     </Button>
                 </div>
              </CardContent>
-             {renderResultArea(result && 'dictionary' in result ? 'dictionary' : 'vocabulary')}
+             {renderResultArea('vocabulary')}
            </Card>
         </TabsContent>
 

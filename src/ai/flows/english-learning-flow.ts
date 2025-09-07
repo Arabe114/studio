@@ -15,7 +15,6 @@ import wav from 'wav';
 const VocabularyInputSchema = z.object({
     tool: z.literal('vocabulary'),
     query: z.string().describe('The word to look up.'),
-    action: z.enum(['search_word', 'get_entire_dictionary']).optional(),
 });
 
 const VocabularyOutputSchema = z.object({
@@ -28,7 +27,6 @@ const VocabularyOutputSchema = z.object({
 const CorrectorInputSchema = z.object({
     tool: z.literal('corrector'),
     query: z.string().describe('The sentence to correct.'),
-    action: z.enum(['search_word', 'get_entire_dictionary']).optional(),
 });
 
 const CorrectorOutputSchema = z.object({
@@ -36,21 +34,9 @@ const CorrectorOutputSchema = z.object({
     explanation: z.string().describe("An explanation of the corrections made."),
 });
 
-// Dictionary Schema
-const DictionaryInputSchema = z.object({
-    tool: z.literal('dictionary'),
-    query: z.string().describe('The word to search for, or "all" to get the full list.'),
-    action: z.enum(['search_word', 'get_entire_dictionary']).optional(),
-});
-
-const DictionaryOutputSchema = z.object({
-    dictionary: z.array(z.string()),
-});
-
-
 // Union Schemas for the main flow
-const EnglishLearningInputSchema = z.union([VocabularyInputSchema, CorrectorInputSchema, DictionaryInputSchema]);
-const EnglishLearningOutputSchema = z.union([VocabularyOutputSchema, CorrectorOutputSchema, DictionaryOutputSchema]);
+const EnglishLearningInputSchema = z.union([VocabularyInputSchema, CorrectorInputSchema]);
+const EnglishLearningOutputSchema = z.union([VocabularyOutputSchema, CorrectorOutputSchema]);
 
 export type EnglishLearningInput = z.infer<typeof EnglishLearningInputSchema>;
 export type EnglishLearningOutput = z.infer<typeof EnglishLearningOutputSchema>;
@@ -59,17 +45,13 @@ const englishLearningPrompt = ai.definePrompt({
   name: 'englishLearningPrompt',
   input: { schema: EnglishLearningInputSchema },
   output: { schema: EnglishLearningOutputSchema },
-  prompt: `You are an expert English language tutor and dictionary. Based on the tool and query, perform the requested action.
+  prompt: `You are an expert English language tutor. Based on the tool and query, perform the requested action.
 
 Tool: {{{tool}}}
 Query: {{{query}}}
-Action: {{{action}}}
 
 If the tool is 'vocabulary', provide a clear definition, a simple example sentence, and a list of common synonyms for the given word.
-If the tool is 'corrector', identify any grammatical errors in the sentence, provide the corrected version, and give a brief explanation of the changes.
-If the tool is 'dictionary':
-- If the action is 'get_entire_dictionary', provide a list of 50 varied and interesting English words.
-- If the action is 'search_word', treat it like the 'vocabulary' tool: provide a definition, example, and synonyms for the word in the query.`,
+If the tool is 'corrector', identify any grammatical errors in the sentence, provide the corrected version, and give a brief explanation of the changes.`,
 });
 
 const englishLearningFlow = ai.defineFlow(
@@ -85,11 +67,6 @@ const englishLearningFlow = ai.defineFlow(
 );
 
 export async function englishLearningTool(input: EnglishLearningInput): Promise<EnglishLearningOutput> {
-  // Handle dictionary search action mapping to vocabulary tool behavior
-  if (input.tool === 'dictionary' && input.action === 'search_word') {
-      const vocabInput: EnglishLearningInput = { tool: 'vocabulary', query: input.query };
-      return englishLearningFlow(vocabInput);
-  }
   return englishLearningFlow(input);
 }
 
