@@ -127,8 +127,8 @@ export default function AppShell() {
               key={item.id}
               onClick={() => setActiveModule(item.id)}
               className={cn(
-                'flex h-10 items-center gap-3 rounded-lg px-3 transition-colors',
-                'hover:bg-accent hover:text-accent-foreground',
+                'group flex h-10 items-center gap-3 rounded-lg px-3 transition-colors',
+                'hover:bg-accent hover:text-accent-foreground hover:shadow-neon-accent',
                 activeModule === item.id
                   ? 'bg-accent text-accent-foreground shadow-neon-accent'
                   : 'text-muted-foreground',
@@ -136,7 +136,7 @@ export default function AppShell() {
               )}
               title={item.label}
             >
-              <item.icon className="h-5 w-5 shrink-0" />
+              <item.icon className="h-5 w-5 shrink-0 group-hover:animate-shake" />
               {isSidebarExpanded && <span className="truncate">{item.label}</span>}
             </button>
           ))}

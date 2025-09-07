@@ -88,10 +88,16 @@ export default {
             height: '0',
           },
         },
+        'shake': {
+          '0%, 100%': { transform: 'rotate(0deg)' },
+          '25%': { transform: 'rotate(-5deg)' },
+          '75%': { transform: 'rotate(5deg)' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'shake': 'shake 0.2s ease-in-out',
       },
       boxShadow: {
         'neon-primary': '0 0 8px hsl(var(--primary) / 0.5)',
