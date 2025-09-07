@@ -171,8 +171,13 @@ export default function AppShell() {
               )}
               title={t(item.labelKey)}
             >
-              <item.icon className="h-5 w-5 shrink-0 group-hover:animate-rotate-in" />
-              <span className="truncate">{t(item.labelKey)}</span>
+              <item.icon className="h-5 w-5 shrink-0 transition-transform duration-300 group-hover:rotate-12" />
+              <span className={cn(
+                "truncate transition-colors",
+                "group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-primary-foreground group-hover:to-white group-hover:bg-[length:200%_100%] group-hover:animate-shimmer-fast group-hover:bg-clip-text group-hover:text-transparent"
+               )}>
+                {t(item.labelKey)}
+              </span>
             </button>
           ))}
         </div>
