@@ -163,14 +163,11 @@ export default function AppShell() {
               key={item.id}
               onClick={() => setActiveModule(item.id)}
               className={cn(
-                'group flex h-10 items-center gap-3 rounded-lg px-3 transition-colors',
+                'group flex h-10 items-center gap-3 rounded-lg px-3 transition-colors w-full justify-start',
                 'hover:text-accent-foreground hover:shadow-neon-accent',
-                'bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_100%]',
-                'hover:animate-shimmer-fast hover:bg-[position:0%_0%]',
-                activeModule === item.id
+                 activeModule === item.id
                   ? 'bg-accent text-accent-foreground shadow-neon-accent'
-                  : 'text-muted-foreground',
-                'w-full justify-start'
+                  : 'text-muted-foreground hover:bg-gradient-to-r from-primary via-accent to-primary hover:bg-[length:200%_100%] hover:animate-shimmer-fast'
               )}
               title={t(item.labelKey)}
             >
